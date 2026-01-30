@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suivi Paiements - Sortie Scolaire</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --accent: #4cc9f0;
+            --success: #4ade80;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --light: #f8fafc;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --gray-light: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #f0f4ff 0%, #f8fafc 100%);
+            color: var(--dark);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: var(--gray);
+            font-size: 1.1rem;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--gray-light);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title i {
+            color: var(--accent);
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--dark);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--gray-light);
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            background: var(--light);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(76, 201, 240, 0.2);
+        }
+
+        .payment-section {
+            background: var(--light);
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+
+        .payment-section h3 {
+            color: var(--secondary);
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .payment-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .payment-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .payment-option {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid var(--gray-light);
+            transition: all 0.3s;
+        }
+
+        .payment-option:hover {
+            border-color: var(--accent);
+        }
+
+        .payment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .payment-name {
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .payment-price {
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .payment-select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--gray-light);
+            border-radius: 8px;
+            background: white;
+            font-size: 1rem;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--gray-light);
+            color: var(--dark);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #22c55e;
+            transform: translateY(-2px);
+        }
+
+        .student-list-container {
+            overflow-x: auto;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .students-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        .students-table th {
+            background: var(--light);
+            padding: 18px 15px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--dark);
+            border-bottom: 2px solid var(--gray-light);
+            position: sticky;
+            top: 0;
+        }
+
+        .students-table td {
+            padding: 16px 15px;
+            border-bottom: 1px solid var(--gray-light);
+            vertical-align: middle;
+        }
+
+        .students-table tr:hover {
+            background: #f8fafc;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .badge-class {
+            background: #dbeafe;
+            color: var(--primary);
+        }
+
+        .badge-payment {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: none;
+            background: var(--gray-light);
+            color: var(--dark);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .icon-btn.edit:hover {
+            background: var(--warning);
+            color: white;
+        }
+
+        .icon-btn.delete:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .totals-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 16px;
+            margin-top: 30px;
+        }
+
+        .totals-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .totals-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .total-item {
+            text-align: center;
+        }
+
+        .total-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .total-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: var(--gray-light);
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+
+        .class-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .class-input input {
+            width: 100px;
+            text-align: center;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .class-example {
+            font-size: 0.85rem;
+            color: var(--gray);
+            margin-top: 5px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        .summary-label {
+            color: var(--gray);
+        }
+
+        .summary-value {
+            font-weight: 600;
+            color: var(--dark);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-school"></i> Suivi des Paiements - Sortie Scolaire</h1>
+            <p>Gérez facilement les règlements des élèves pour la sortie pédagogique</p>
+        </div>
+
+        <div class="main-layout">
+            <div class="left-column">
+                <div class="card">
+                    <h2 class="card-title"><i class="fas fa-user-plus"></i> Ajouter un élève</h2>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Prénom</label>
+                        <input type="text" id="firstName" class="form-input" placeholder="Ex: Marie">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Nom</label>
+                        <input type="text" id="lastName" class="form-input" placeholder="Ex: Dupont">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Classe</label>
+                        <div class="class-input">
+                            <input type="text" id="class" class="form-input" placeholder="Ex: 203" maxlength="3">
+                        </div>
+                        <div class="class-example">Format: 102, 203, TG1, etc.</div>
+                    </div>
+
+                    <div class="payment-section">
+                        <h3><i class="fas fa-euro-sign"></i> Options de paiement</h3>
+                        <div class="payment-grid">
+                            <div class="payment-option">
+                                <div class="payment-header">
+                                    <span class="payment-name">Forfait</span>
+                                    <span class="payment-price">17,50€/j</span>
+                                </div>
+                                <select id="forfaitDays" class="payment-select">
+                                    <option value="0">0 jour (0,00€)</option>
+                                    <option value="1">1 jour (17,50€)</option>
+                                    <option value="2">2 jours (35,00€)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="payment-option">
+                                <div class="payment-header">
+                                    <span class="payment-name">Location</span>
+                                    <span class="payment-price">10,00€/j</span>
+                                </div>
+                                <select id="locationDays" class="payment-select">
+                                    <option value="0">0 jour (0,00€)</option>
+                                    <option value="1">1 jour (10,00€)</option>
+                                    <option value="2">2 jours (20,00€)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="payment-option">
+                                <div class="payment-header">
+                                    <span class="payment-name">KeyCard</span>
+                                    <span class="payment-price">2,00€</span>
+                                </div>
+                                <select id="keycard" class="payment-select">
+                                    <option value="0">Non (0,00€)</option>
+                                    <option value="1">Oui (2,00€)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="summary">
+                        <div class="summary-row">
+                            <span class="summary-label">Total pour cet élève :</span>
+                            <span class="summary-value" id="studentTotal">0,00€</span>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button id="addBtn" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Ajouter l'élève
+                        </button>
+                    </div>
+                </div>
+
+                <div class="totals-card">
+                    <div class="totals-grid">
+                        <div class="total-item">
+                            <div class="total-label">Élèves inscrits</div>
+                            <div class="total-value" id="totalStudents">0</div>
+                        </div>
+                        <div class="total-item">
+                            <div class="total-label">Total collecté</div>
+                            <div class="total-value" id="totalAmount">0,00€</div>
+                        </div>
+                        <div class="total-item">
+                            <div class="total-label">À percevoir</div>
+                            <div class="total-value" id="remainingAmount">0,00€</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 30px;">
+                    <h2 class="card-title"><i class="fas fa-download"></i> Exporter les données</h2>
+                    <button id="downloadBtn" class="btn btn-success">
+                        <i class="fas fa-file-csv"></i> Télécharger en CSV
+                    </button>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div class="card">
+                    <h2 class="card-title"><i class="fas fa-list"></i> Liste des élèves</h2>
+                    
+                    <div class="table-responsive">
+                        <table class="students-table" id="studentsTable">
+                            <thead>
+                                <tr>
+                                    <th>Nom</th>
+                                    <th>Prénom</th>
+                                    <th>Classe</th>
+                                    <th>Forfait</th>
+                                    <th>Location</th>
+                                    <th>KeyCard</th>
+                                    <th>Total</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentsBody">
+                                <!-- Les élèves seront ajoutés ici -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="emptyState" class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <h3>Aucun élève inscrit</h3>
+                        <p>Commencez par ajouter des élèves à l'aide du formulaire</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let students = JSON.parse(localStorage.getItem('students')) || [];
+        let editIndex = null;
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
+        }
+
+        function calculateStudentTotal() {
+            const forfaitDays = parseInt(document.getElementById('forfaitDays').value);
+            const locationDays = parseInt(document.getElementById('locationDays').value);
+            const keycard = parseInt(document.getElementById('keycard').value);
+            
+            const total = (forfaitDays * 17.5) + (locationDays * 10) + (keycard * 2);
+            document.getElementById('studentTotal').textContent = formatCurrency(total);
+        }
+
+        function updateStudentList() {
+            const tbody = document.getElementById('studentsBody');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (students.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                updateTotals();
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            tbody.innerHTML = '';
+            
+            let totalAmount = 0;
+            
+            students.forEach((student, index) => {
+                const forfaitPrice = student.forfaitDays * 17.5;
+                const locationPrice = student.locationDays * 10;
+                const keycardPrice = student.keycard * 2;
+                const total = forfaitPrice + locationPrice + keycardPrice;
+                
+                totalAmount += total;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${student.lastName}</strong></td>
+                    <td>${student.firstName}</td>
+                    <td><span class="badge badge-class">${student.class}</span></td>
+                    <td>
+                        <div>${student.forfaitDays} jour(s)</div>
+                        <div class="badge badge-payment">${formatCurrency(forfaitPrice)}</div>
+                    </td>
+                    <td>
+                        <div>${student.locationDays} jour(s)</div>
+                        <div class="badge badge-payment">${formatCurrency(locationPrice)}</div>
+                    </td>
+                    <td>
+                        <div>${student.keycard ? 'Oui' : 'Non'}</div>
+                        <div class="badge badge-payment">${formatCurrency(keycardPrice)}</div>
+                    </td>
+                    <td><strong style="color: var(--primary);">${formatCurrency(total)}</strong></td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="icon-btn edit" onclick="editStudent(${index})" title="Modifier">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="icon-btn delete" onclick="deleteStudent(${index})" title="Supprimer">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            updateTotals(totalAmount);
+        }
+
+        function updateTotals(totalAmount = 0) {
+            document.getElementById('totalStudents').textContent = students.length;
+            document.getElementById('totalAmount').textContent = formatCurrency(totalAmount);
+            document.getElementById('remainingAmount').textContent = formatCurrency(totalAmount);
+        }
+
+        function addOrUpdateStudent() {
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const studentClass = document.getElementById('class').value.trim().toUpperCase();
+            const forfaitDays = parseInt(document.getElementById('forfaitDays').value);
+            const locationDays = parseInt(document.getElementById('locationDays').value);
+            const keycard = parseInt(document.getElementById('keycard').value);
+            
+            if (!firstName || !lastName || !studentClass) {
+                alert('Veuillez remplir tous les champs obligatoires (Prénom, Nom, Classe)');
+                return;
+            }
+            
+            if (studentClass.length !== 3) {
+                alert('La classe doit contenir exactement 3 caractères (ex: 102, 203, TG1)');
+                return;
+            }
+            
+            const student = {
+                firstName,
+                lastName,
+                class: studentClass,
+                forfaitDays,
+                locationDays,
+                keycard
+            };
+            
+            if (editIndex !== null) {
+                students[editIndex] = student;
+                editIndex = null;
+                document.getElementById('addBtn').innerHTML = '<i class="fas fa-plus"></i> Ajouter l\'élève';
+            } else {
+                students.push(student);
+            }
+            
+            localStorage.setItem('students', JSON.stringify(students));
+            
+            document.getElementById('firstName').value = '';
+            document.getElementById('lastName').value = '';
+            document.getElementById('class').value = '';
+            document.getElementById('forfaitDays').value = '0';
+            document.getElementById('locationDays').value = '0';
+            document.getElementById('keycard').value = '0';
+            
+            calculateStudentTotal();
+            updateStudentList();
+        }
+
+        function editStudent(index) {
+            const student = students[index];
+            document.getElementById('firstName').value = student.firstName;
+            document.getElementById('lastName').value = student.lastName;
+            document.getElementById('class').value = student.class;
+            document.getElementById('forfaitDays').value = student.forfaitDays;
+            document.getElementById('locationDays').value = student.locationDays;
+            document.getElementById('keycard').value = student.keycard;
+            
+            editIndex = index;
+            document.getElementById('addBtn').innerHTML = '<i class="fas fa-save"></i> Mettre à jour';
+            
+            calculateStudentTotal();
+        }
+
+        function deleteStudent(index) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cet élève ?')) {
+                students.splice(index, 1);
+                localStorage.setItem('students', JSON.stringify(students));
+                updateStudentList();
+            }
+        }
+
+        function downloadCSV() {
+            if (students.length === 0) {
+                alert('La liste est vide. Ajoutez d\'abord des élèves.');
+                return;
+            }
+            
+            let csv = 'Nom;Prénom;Classe;Forfait_Jours;Forfait_Montant;Location_Jours;Location_Montant;KeyCard;KeyCard_Montant;Total\n';
+            
+            students.forEach(student => {
+                const forfaitPrice = student.forfaitDays * 17.5;
+                const locationPrice = student.locationDays * 10;
+                const keycardPrice = student.keycard * 2;
+                const total = forfaitPrice + locationPrice + keycardPrice;
+                
+                csv += `${student.lastName};${student.firstName};${student.class};`;
+                csv += `${student.forfaitDays};${forfaitPrice.toFixed(2)};`;
+                csv += `${student.locationDays};${locationPrice.toFixed(2)};`;
+                csv += `${student.keycard ? 'Oui' : 'Non'};${keycardPrice.toFixed(2)};`;
+                csv += `${total.toFixed(2)}\n`;
+            });
+            
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `paiements_eleves_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+        }
+
+        document.getElementById('addBtn').addEventListener('click', addOrUpdateStudent);
+        document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
+
+        document.getElementById('forfaitDays').addEventListener('change', calculateStudentTotal);
+        document.getElementById('locationDays').addEventListener('change', calculateStudentTotal);
+        document.getElementById('keycard').addEventListener('change', calculateStudentTotal);
+
+        document.getElementById('class').addEventListener('input', function(e) {
+            this.value = this.value.toUpperCase().slice(0, 3);
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStudentList();
+            calculateStudentTotal();
+        });
+    </script>
+</body>
+</html>
