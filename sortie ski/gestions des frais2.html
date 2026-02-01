@@ -33,6 +33,7 @@
             flex-direction: column;
         }
 
+        /* Overlay d'authentification */
         .auth-overlay {
             position: fixed;
             top: 0;
@@ -70,10 +71,10 @@
         }
 
         .auth-title {
-            font-size: 20px;
+            font-size: 22px;
             font-weight: 600;
             color: var(--dark);
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         .auth-subtitle {
@@ -84,12 +85,12 @@
 
         .auth-input {
             width: 100%;
-            padding: 16px;
+            padding: 14px 20px;
             border: 2px solid var(--border);
-            border-radius: 12px;
-            font-size: 20px;
+            border-radius: 10px;
+            font-size: 18px;
             text-align: center;
-            letter-spacing: 8px;
+            letter-spacing: 6px;
             font-weight: 600;
             color: var(--dark);
             margin-bottom: 15px;
@@ -115,11 +116,11 @@
 
         .auth-button {
             width: 100%;
-            padding: 16px;
+            padding: 14px;
             background: var(--primary);
             color: white;
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
@@ -136,22 +137,23 @@
 
         .auth-error {
             color: #ef4444;
-            font-size: 14px;
+            font-size: 13px;
             margin-top: 10px;
-            min-height: 20px;
+            min-height: 18px;
         }
 
+        /* Application principale */
         .app-container {
             display: none;
             flex: 1;
             width: 100%;
-            overflow-x: hidden;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 15px;
+            flex: 1;
             width: 100%;
         }
 
@@ -167,7 +169,11 @@
             .main-grid {
                 display: grid;
                 grid-template-columns: 1fr 2fr;
-                gap: 20px;
+                gap: 25px;
+            }
+            
+            .container {
+                padding: 20px;
             }
         }
 
@@ -178,7 +184,6 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             border: 1px solid var(--border);
             width: 100%;
-            overflow: hidden;
         }
 
         @media (min-width: 768px) {
@@ -193,15 +198,17 @@
 
         .input-label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 6px;
             font-weight: 500;
             color: var(--dark);
             font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .input-field {
             width: 100%;
-            padding: 12px;
+            padding: 12px 14px;
             border: 1px solid var(--border);
             border-radius: 10px;
             font-size: 15px;
@@ -217,8 +224,8 @@
 
         .payment-options {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 10px;
+            grid-template-columns: 1fr;
+            gap: 12px;
             margin: 20px 0;
         }
 
@@ -236,7 +243,6 @@
             background: var(--light);
             display: flex;
             flex-direction: column;
-            min-height: 110px;
         }
 
         .payment-header {
@@ -251,7 +257,6 @@
             font-size: 13px;
             color: var(--dark);
             margin-bottom: 4px;
-            word-break: break-word;
         }
 
         .payment-price {
@@ -263,15 +268,14 @@
             border-radius: 6px;
             display: inline-block;
             width: fit-content;
-            white-space: nowrap;
         }
 
         .payment-select {
             width: 100%;
-            padding: 8px 10px;
+            padding: 9px 10px;
             border: 1px solid var(--border);
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 13px;
             background: white;
             cursor: pointer;
         }
@@ -283,7 +287,7 @@
             color: white;
             border: none;
             border-radius: 10px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
             display: flex;
@@ -303,7 +307,14 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 10px;
-            margin: 20px 0;
+            margin: 25px 0;
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
         }
 
         .stat-card {
@@ -314,11 +325,17 @@
             border: 1px solid var(--border);
         }
 
+        @media (min-width: 768px) {
+            .stat-card {
+                padding: 18px;
+            }
+        }
+
         .stat-value {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 700;
             color: var(--primary);
-            margin: 5px 0;
+            margin: 6px 0;
         }
 
         @media (min-width: 768px) {
@@ -341,7 +358,7 @@
             color: white;
             border: none;
             border-radius: 10px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
             display: flex;
@@ -358,7 +375,7 @@
         }
 
         .search-container {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         .search-input {
@@ -378,14 +395,13 @@
 
         .search-icon {
             position: absolute;
-            left: 15px;
+            left: 16px;
             top: 50%;
             transform: translateY(-50%);
             color: var(--gray);
         }
 
         .table-container {
-            width: 100%;
             overflow-x: auto;
             border-radius: 10px;
             border: 1px solid var(--border);
@@ -395,16 +411,16 @@
 
         .data-table {
             width: 100%;
-            min-width: 800px;
             border-collapse: separate;
             border-spacing: 0;
             font-size: 13px;
+            min-width: 800px;
         }
 
         @media (min-width: 768px) {
             .data-table {
-                min-width: auto;
                 font-size: 14px;
+                min-width: auto;
             }
         }
 
@@ -413,24 +429,26 @@
         }
 
         .data-table th {
-            padding: 12px 8px;
+            padding: 14px 10px;
             text-align: left;
             font-weight: 600;
             color: var(--dark);
             border-bottom: 1px solid var(--border);
             white-space: nowrap;
             font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         @media (min-width: 768px) {
             .data-table th {
-                padding: 14px 10px;
+                padding: 16px 12px;
                 font-size: 13px;
             }
         }
 
         .data-table td {
-            padding: 10px 8px;
+            padding: 12px 10px;
             border-bottom: 1px solid var(--border);
             vertical-align: middle;
             transition: background 0.2s;
@@ -438,7 +456,7 @@
 
         @media (min-width: 768px) {
             .data-table td {
-                padding: 12px 10px;
+                padding: 14px 12px;
             }
         }
 
@@ -452,7 +470,7 @@
 
         .badge {
             display: inline-block;
-            padding: 4px 8px;
+            padding: 5px 8px;
             background: var(--primary-light);
             color: var(--primary);
             border-radius: 8px;
@@ -465,13 +483,19 @@
         .amount-cell {
             font-weight: 500;
             color: var(--dark);
-            white-space: nowrap;
+            font-size: 12px;
+        }
+
+        @media (min-width: 768px) {
+            .amount-cell {
+                font-size: 13px;
+            }
         }
 
         .real-total {
             font-weight: 700;
             color: var(--primary);
-            white-space: nowrap;
+            font-size: 13px;
         }
 
         .action-buttons {
@@ -483,7 +507,7 @@
         .icon-btn {
             width: 32px;
             height: 32px;
-            border-radius: 6px;
+            border-radius: 8px;
             border: 1px solid var(--border);
             background: white;
             cursor: pointer;
@@ -492,7 +516,7 @@
             justify-content: center;
             color: var(--gray);
             transition: all 0.2s;
-            flex-shrink: 0;
+            font-size: 14px;
         }
 
         .icon-btn:hover {
@@ -533,8 +557,8 @@
             margin: 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 20px;
             align-items: center;
+            gap: 20px;
             text-align: center;
         }
 
@@ -543,17 +567,22 @@
                 flex-direction: row;
                 justify-content: space-between;
                 text-align: left;
+                gap: 40px;
             }
             
-            .footer-info {
-                text-align: center;
+            .footer {
+                padding: 30px 20px;
             }
         }
 
         .footer-logo img {
-            height: 40px;
+            height: 45px;
             width: auto;
             opacity: 0.9;
+        }
+
+        .footer-info {
+            flex: 1;
         }
 
         .footer-credits {
@@ -573,7 +602,7 @@
         .footer-license {
             font-size: 11px;
             opacity: 0.6;
-            margin-top: 10px;
+            margin-top: 12px;
         }
 
         .search-wrapper {
@@ -594,7 +623,7 @@
             width: 30px;
             height: 30px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
+            margin: 0 auto 15px;
         }
 
         @keyframes spin {
@@ -620,7 +649,7 @@
         </div>
     </div>
 
-    <!-- Application principale (cachée au début) -->
+    <!-- Application principale -->
     <div class="app-container" id="appContainer">
         <div class="container">
             <div class="main-grid">
@@ -756,14 +785,13 @@
                     <div class="footer-slogan">Il n'y a pas que Redbull qui donne des ailes : vous aussi !</div>
                     <div class="footer-license">Tous droits réservés</div>
                 </div>
-                <div></div>
             </div>
         </footer>
     </div>
 
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
     
     <script>
         // Configuration Firebase
@@ -773,11 +801,9 @@
 
         // Initialisation Firebase
         const app = firebase.initializeApp(firebaseConfig);
-        const database = firebase.database(app);
+        const database = firebase.getDatabase(app);
 
-        // Code d'accès - CHANGEZ CE CODE !
-        const SECRET_CODE = "1234";
-
+        // Données et configuration
         const savingsMap = {
             17.5: 5.55,
             10: 3.1,
@@ -790,8 +816,8 @@
         };
 
         let students = [];
+        let editIndex = null;
         let currentSearch = '';
-        let currentStudentId = null;
         let authCode = '';
 
         // Fonctions utilitaires
@@ -803,112 +829,79 @@
             return savingsMap[total] || 0;
         }
 
-        // Fonction pour vérifier l'authentification avec Firebase
-        function checkFirebaseAuth(code) {
-            document.getElementById('loadingData').style.display = 'block';
-            
-            // On essaye de lire une donnée pour vérifier l'authentification
-            const testRef = database.ref('students');
-            
-            return testRef.limitToLast(1).once('value')
-                .then(() => {
-                    // Si on arrive ici, l'authentification a réussi
-                    authCode = code;
-                    document.getElementById('loadingData').style.display = 'none';
-                    return true;
-                })
-                .catch((error) => {
-                    document.getElementById('loadingData').style.display = 'none';
-                    console.error('Erreur Firebase:', error);
-                    return false;
-                });
-        }
-
-        // Gestion des données Firebase
+        // Gestion des données Firebase avec authentification par code
         function loadStudents() {
             document.getElementById('loadingData').style.display = 'block';
             
-            const studentsRef = database.ref('students');
-            
-            return studentsRef.once('value')
-                .then((snapshot) => {
-                    const data = snapshot.val();
-                    
-                    if (data) {
-                        students = Object.keys(data).map(key => ({
-                            id: key,
-                            ...data[key]
-                        }));
-                    } else {
-                        students = [];
-                    }
-                    
-                    document.getElementById('loadingData').style.display = 'none';
-                    updateStudentList();
-                    return students;
-                })
-                .catch((error) => {
-                    console.error('Erreur de chargement:', error);
-                    document.getElementById('loadingData').style.display = 'none';
-                    alert('Erreur de chargement des données: ' + error.message);
-                    students = [];
-                    return [];
+            // Utilisation de query avec le code d'authentification
+            return firebase.query(
+                firebase.ref(database, 'students'),
+                'code',
+                'equalTo',
+                authCode
+            ).once('value')
+            .then((snapshot) => {
+                const data = snapshot.val();
+                students = data ? Object.values(data) : [];
+                
+                // Extraire les données et garder les clés pour les mises à jour
+                const studentEntries = [];
+                snapshot.forEach((childSnapshot) => {
+                    const student = childSnapshot.val();
+                    student.key = childSnapshot.key;
+                    studentEntries.push(student);
                 });
+                students = studentEntries;
+                
+                document.getElementById('loadingData').style.display = 'none';
+                updateStudentList();
+                return students;
+            })
+            .catch((error) => {
+                console.error('Erreur de chargement:', error);
+                document.getElementById('loadingData').style.display = 'none';
+                if (error.code === 'PERMISSION_DENIED') {
+                    throw new Error('Code incorrect');
+                }
+                alert('Erreur de chargement des données');
+                return [];
+            });
         }
 
         function saveStudentToFirebase(student) {
-            const studentsRef = database.ref('students');
-            const newStudentRef = studentsRef.push();
-            
-            return newStudentRef.set({
-                firstName: student.firstName,
-                lastName: student.lastName,
-                class: student.class,
-                forfaitDays: student.forfaitDays,
-                locationDays: student.locationDays,
-                keycard: student.keycard,
+            // Ajouter le code d'authentification aux données
+            const studentData = {
+                ...student,
                 timestamp: Date.now()
-            })
+            };
+            
+            return firebase.set(
+                firebase.ref(database, `students/${Date.now()}`),
+                studentData
+            )
             .then(() => {
                 return loadStudents();
-            })
-            .catch((error) => {
-                console.error('Erreur d\'ajout:', error);
-                alert('Erreur lors de l\'ajout: ' + error.message);
-                throw error;
             });
         }
 
-        function updateStudentInFirebase(studentId, student) {
-            const studentRef = database.ref(`students/${studentId}`);
-            
-            return studentRef.update({
-                firstName: student.firstName,
-                lastName: student.lastName,
-                class: student.class,
-                forfaitDays: student.forfaitDays,
-                locationDays: student.locationDays,
-                keycard: student.keycard,
+        function updateStudentInFirebase(studentKey, student) {
+            const studentData = {
+                ...student,
                 updatedAt: Date.now()
-            })
-            .then(() => loadStudents())
-            .catch((error) => {
-                console.error('Erreur de mise à jour:', error);
-                alert('Erreur lors de la mise à jour: ' + error.message);
-                throw error;
-            });
+            };
+            
+            return firebase.update(
+                firebase.ref(database, `students/${studentKey}`),
+                studentData
+            )
+            .then(() => loadStudents());
         }
 
-        function deleteStudentFromFirebase(studentId) {
-            const studentRef = database.ref(`students/${studentId}`);
-            
-            return studentRef.remove()
-                .then(() => loadStudents())
-                .catch((error) => {
-                    console.error('Erreur de suppression:', error);
-                    alert('Erreur lors de la suppression: ' + error.message);
-                    throw error;
-                });
+        function deleteStudentFromFirebase(studentKey) {
+            return firebase.remove(
+                firebase.ref(database, `students/${studentKey}`)
+            )
+            .then(() => loadStudents());
         }
 
         // Interface utilisateur
@@ -963,10 +956,10 @@
                     <td class="real-total">${formatCurrency(realTotal)}</td>
                     <td>
                         <div class="action-buttons">
-                            <button class="icon-btn" onclick="editStudent('${student.id}')" title="Modifier">
+                            <button class="icon-btn" onclick="editStudent('${student.key}')" title="Modifier">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="icon-btn" onclick="deleteStudent('${student.id}')" title="Supprimer">
+                            <button class="icon-btn" onclick="deleteStudent('${student.key}')" title="Supprimer">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -1011,15 +1004,16 @@
                 keycard
             };
             
-            if (currentStudentId !== null) {
-                updateStudentInFirebase(currentStudentId, student)
+            if (editIndex !== null) {
+                updateStudentInFirebase(editIndex, student)
                     .then(() => {
-                        currentStudentId = null;
+                        editIndex = null;
                         document.getElementById('addBtn').innerHTML = '<i class="fas fa-plus"></i> Ajouter élève';
                         resetForm();
                     })
                     .catch(error => {
-                        console.error('Erreur:', error);
+                        console.error('Erreur de mise à jour:', error);
+                        alert('Erreur lors de la mise à jour');
                     });
             } else {
                 saveStudentToFirebase(student)
@@ -1027,31 +1021,33 @@
                         resetForm();
                     })
                     .catch(error => {
-                        console.error('Erreur:', error);
+                        console.error('Erreur d\'ajout:', error);
+                        alert('Erreur lors de l\'ajout');
                     });
             }
         }
 
-        function editStudent(studentId) {
-            const student = students.find(s => s.id === studentId);
-            if (!student) return;
-            
-            document.getElementById('firstName').value = student.firstName;
-            document.getElementById('lastName').value = student.lastName;
-            document.getElementById('class').value = student.class;
-            document.getElementById('forfaitDays').value = student.forfaitDays;
-            document.getElementById('locationDays').value = student.locationDays;
-            document.getElementById('keycard').value = student.keycard;
-            
-            currentStudentId = studentId;
-            document.getElementById('addBtn').innerHTML = '<i class="fas fa-save"></i> Mettre à jour';
+        function editStudent(studentKey) {
+            const student = students.find(s => s.key === studentKey);
+            if (student) {
+                document.getElementById('firstName').value = student.firstName;
+                document.getElementById('lastName').value = student.lastName;
+                document.getElementById('class').value = student.class;
+                document.getElementById('forfaitDays').value = student.forfaitDays;
+                document.getElementById('locationDays').value = student.locationDays;
+                document.getElementById('keycard').value = student.keycard;
+                
+                editIndex = studentKey;
+                document.getElementById('addBtn').innerHTML = '<i class="fas fa-save"></i> Mettre à jour';
+            }
         }
 
-        function deleteStudent(studentId) {
+        function deleteStudent(studentKey) {
             if (confirm('Supprimer cet élève ?')) {
-                deleteStudentFromFirebase(studentId)
+                deleteStudentFromFirebase(studentKey)
                     .catch(error => {
-                        console.error('Erreur:', error);
+                        console.error('Erreur de suppression:', error);
+                        alert('Erreur lors de la suppression');
                     });
             }
         }
@@ -1095,64 +1091,43 @@
             link.click();
         }
 
-        // Gestion de l'authentification SIMPLIFIÉE
+        // Gestion de l'authentification
         function handleAuth() {
             const codeInput = document.getElementById('authCode');
             const errorDiv = document.getElementById('authError');
             const code = codeInput.value;
             
+            // Validation du code
             if (code.length !== 4 || !/^\d{4}$/.test(code)) {
                 codeInput.classList.add('error');
                 errorDiv.textContent = 'Le code doit contenir exactement 4 chiffres';
                 return;
             }
             
-            // Vérifier d'abord le code côté client
-            if (code === SECRET_CODE) {
-                // Tester la connexion Firebase
-                checkFirebaseAuth(code)
-                    .then((success) => {
-                        if (success) {
-                            // SUCCÈS : cacher l'overlay et montrer l'application
-                            codeInput.classList.remove('error');
-                            errorDiv.textContent = '';
-                            authCode = code;
-                            
-                            document.getElementById('authOverlay').style.display = 'none';
-                            document.getElementById('appContainer').style.display = 'flex';
-                            
-                            // Charger les données
-                            loadStudents();
-                        } else {
-                            // Firebase a échoué mais le code est bon - on peut quand même continuer
-                            codeInput.classList.remove('error');
-                            errorDiv.textContent = '';
-                            authCode = code;
-                            
-                            document.getElementById('authOverlay').style.display = 'none';
-                            document.getElementById('appContainer').style.display = 'flex';
-                            
-                            // Avertir l'utilisateur
-                            alert('Note: La connexion Firebase a échoué. Les données seront sauvegardées localement.');
-                            updateStudentList();
-                        }
-                    })
-                    .catch(() => {
-                        codeInput.classList.remove('error');
-                        errorDiv.textContent = '';
-                        authCode = code;
-                        
-                        document.getElementById('authOverlay').style.display = 'none';
-                        document.getElementById('appContainer').style.display = 'flex';
-                        
-                        updateStudentList();
-                    });
-            } else {
-                codeInput.classList.add('error');
-                errorDiv.textContent = 'Code incorrect';
-                codeInput.value = '';
-                codeInput.focus();
-            }
+            // Définir le code d'authentification
+            authCode = code;
+            
+            // Essayer de charger les données (cela vérifiera le code)
+            document.getElementById('loadingData').style.display = 'block';
+            
+            loadStudents()
+                .then(() => {
+                    // Authentification réussie
+                    codeInput.classList.remove('error');
+                    errorDiv.textContent = '';
+                    
+                    // Masquer l'écran d'authentification
+                    document.getElementById('authOverlay').style.display = 'none';
+                    document.getElementById('appContainer').style.display = 'block';
+                })
+                .catch((error) => {
+                    // Code incorrect
+                    codeInput.classList.add('error');
+                    errorDiv.textContent = error.message || 'Code incorrect';
+                    codeInput.value = '';
+                    codeInput.focus();
+                    document.getElementById('loadingData').style.display = 'none';
+                });
         }
 
         // Événements
@@ -1179,6 +1154,7 @@
             document.getElementById('authError').textContent = '';
         });
 
+        // Focus sur le champ de code au chargement
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('authCode').focus();
         });
