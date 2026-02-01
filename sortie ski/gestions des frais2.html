@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion Sortie Scolaire</title>
+    <title>Gestion des Paiements - Sortie Scolaire</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -15,6 +15,7 @@
             --gray: #64748b;
             --gray-light: #e2e8f0;
             --success: #10b981;
+            --warning: #f59e0b;
             --danger: #ef4444;
             --border: #e2e8f0;
         }
@@ -34,138 +35,29 @@
             flex-direction: column;
         }
 
-        .auth-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            padding: 20px;
-        }
-
-        .auth-container {
-            max-width: 400px;
-            width: 100%;
-            text-align: center;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .auth-logo {
-            margin-bottom: 40px;
-        }
-
-        .auth-logo img {
-            height: 80px;
-            width: auto;
-        }
-
-        .auth-title {
-            font-size: 24px;
-            font-weight: 600;
-            color: var(--dark);
-            margin-bottom: 10px;
-        }
-
-        .auth-subtitle {
-            color: var(--gray);
-            margin-bottom: 30px;
-            font-size: 15px;
-        }
-
-        .auth-input {
-            width: 100%;
-            padding: 16px 20px;
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            font-size: 18px;
-            text-align: center;
-            letter-spacing: 8px;
-            font-weight: 600;
-            color: var(--dark);
-            margin-bottom: 20px;
-            transition: all 0.2s;
-        }
-
-        .auth-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--primary-light);
-        }
-
-        .auth-input.error {
-            border-color: var(--danger);
-            animation: shake 0.3s;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-
-        .auth-button {
-            width: 100%;
-            padding: 16px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: all 0.2s;
-        }
-
-        .auth-button:hover {
-            background: var(--secondary);
-        }
-
-        .auth-button.loading {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-
-        .auth-button.loading i {
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .auth-error {
-            color: var(--danger);
-            font-size: 14px;
-            margin-top: 15px;
-            min-height: 20px;
-        }
-
-        .app-container {
-            display: none;
-            flex: 1;
-        }
-
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
             flex: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: var(--gray);
+            font-size: 1.1rem;
         }
 
         .main-grid {
@@ -175,86 +67,110 @@
             margin-bottom: 60px;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
             .main-grid {
                 grid-template-columns: 1fr;
-                gap: 20px;
             }
         }
 
-        .form-card, .list-card {
+        .card {
             background: white;
             border-radius: 20px;
-            padding: 25px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            padding: 30px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
             border: 1px solid var(--border);
         }
 
-        .input-group {
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title i {
+            color: var(--primary);
+        }
+
+        .form-group {
             margin-bottom: 20px;
         }
 
-        .input-label {
+        .form-label {
             display: block;
-            margin-bottom: 6px;
             font-weight: 500;
+            margin-bottom: 8px;
             color: var(--dark);
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 14px;
         }
 
-        .input-field {
+        .form-input {
             width: 100%;
-            padding: 12px 16px;
-            border: 1px solid var(--border);
+            padding: 14px 16px;
+            border: 2px solid var(--border);
             border-radius: 12px;
             font-size: 15px;
+            transition: all 0.3s;
             background: var(--light);
-            transition: all 0.2s;
         }
 
-        .input-field:focus {
+        .form-input:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px var(--primary-light);
         }
 
-        .payment-options {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin: 25px 0;
+        .payment-section {
+            background: var(--light);
+            border-radius: 16px;
+            padding: 25px;
+            margin-top: 30px;
         }
 
-        @media (max-width: 480px) {
-            .payment-options {
+        .payment-section h3 {
+            color: var(--secondary);
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .payment-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .payment-grid {
                 grid-template-columns: 1fr;
             }
         }
 
-        .payment-card {
-            border: 1px solid var(--border);
+        .payment-option {
+            background: white;
+            padding: 20px;
             border-radius: 12px;
-            padding: 18px;
-            background: var(--light);
-            display: flex;
-            flex-direction: column;
-            min-height: 120px;
+            border: 2px solid var(--border);
+            transition: all 0.3s;
+        }
+
+        .payment-option:hover {
+            border-color: var(--primary);
         }
 
         .payment-header {
             display: flex;
-            flex-direction: column;
-            margin-bottom: 12px;
-            flex: 1;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
         }
 
         .payment-name {
             font-weight: 600;
-            font-size: 14px;
             color: var(--dark);
-            margin-bottom: 4px;
+            font-size: 14px;
         }
 
         .payment-price {
@@ -264,46 +180,57 @@
             background: var(--primary-light);
             padding: 4px 8px;
             border-radius: 6px;
-            display: inline-block;
-            width: fit-content;
         }
 
         .payment-select {
             width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--border);
+            padding: 12px;
+            border: 2px solid var(--border);
             border-radius: 8px;
-            font-size: 14px;
             background: white;
+            font-size: 14px;
             cursor: pointer;
         }
 
-        .add-btn {
-            width: 100%;
-            padding: 16px;
-            background: var(--primary);
-            color: white;
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 16px 24px;
             border: none;
             border-radius: 12px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
+            transition: all 0.3s;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            margin-top: 20px;
-            transition: all 0.2s;
         }
 
-        .add-btn:hover {
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
             background: var(--secondary);
-            transform: translateY(-1px);
+            transform: translateY(-2px);
         }
 
-        .add-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #0da271;
+            transform: translateY(-2px);
         }
 
         .stats-grid {
@@ -313,7 +240,7 @@
             margin: 30px 0;
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 640px) {
             .stats-grid {
                 grid-template-columns: 1fr;
             }
@@ -331,7 +258,7 @@
             font-size: 24px;
             font-weight: 700;
             color: var(--primary);
-            margin: 8px 0;
+            margin: 10px 0;
         }
 
         .stat-label {
@@ -341,46 +268,17 @@
             letter-spacing: 0.5px;
         }
 
-        .download-btn {
-            width: 100%;
-            padding: 16px;
-            background: var(--success);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
-            transition: all 0.2s;
-        }
-
-        .download-btn:hover {
-            background: #0da271;
-            transform: translateY(-1px);
-        }
-
-        .download-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
         .search-container {
             margin-bottom: 25px;
         }
 
         .search-input {
             width: 100%;
-            padding: 14px 20px;
-            border: 1px solid var(--border);
+            padding: 14px 20px 14px 50px;
+            border: 2px solid var(--border);
             border-radius: 12px;
             font-size: 15px;
             background: var(--light);
-            padding-left: 45px;
         }
 
         .search-input:focus {
@@ -399,9 +297,8 @@
         .table-container {
             overflow-x: auto;
             border-radius: 12px;
-            border: 1px solid var(--border);
+            border: 2px solid var(--border);
             background: white;
-            margin-bottom: 20px;
         }
 
         .data-table {
@@ -420,7 +317,7 @@
             text-align: left;
             font-weight: 600;
             color: var(--dark);
-            border-bottom: 1px solid var(--border);
+            border-bottom: 2px solid var(--border);
             white-space: nowrap;
             font-size: 13px;
             text-transform: uppercase;
@@ -444,35 +341,24 @@
 
         .badge {
             display: inline-block;
-            padding: 6px 10px;
+            padding: 6px 12px;
             background: var(--primary-light);
             color: var(--primary);
-            border-radius: 10px;
+            border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
-            min-width: 40px;
             text-align: center;
-        }
-
-        .amount-cell {
-            font-weight: 500;
-            color: var(--dark);
-        }
-
-        .real-total {
-            font-weight: 700;
-            color: var(--primary);
         }
 
         .action-buttons {
             display: flex;
-            gap: 6px;
+            gap: 8px;
             justify-content: flex-end;
         }
 
         .icon-btn {
-            width: 34px;
-            height: 34px;
+            width: 36px;
+            height: 36px;
             border-radius: 8px;
             border: 1px solid var(--border);
             background: white;
@@ -481,7 +367,7 @@
             align-items: center;
             justify-content: center;
             color: var(--gray);
-            transition: all 0.2s;
+            transition: all 0.3s;
         }
 
         .icon-btn:hover {
@@ -491,9 +377,16 @@
             transform: translateY(-1px);
         }
 
-        .icon-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .icon-btn.edit:hover {
+            background: var(--warning);
+            color: white;
+            border-color: var(--warning);
+        }
+
+        .icon-btn.delete:hover {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
         }
 
         .empty-state {
@@ -510,8 +403,58 @@
         }
 
         .empty-text {
-            font-size: 15px;
+            font-size: 16px;
             color: var(--gray);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray);
+        }
+
+        .loading-spinner {
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--danger);
+            background: #fef2f2;
+            border-radius: 12px;
+            margin: 20px 0;
+            border: 2px solid #fecaca;
+        }
+
+        .error-state i {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .session-info {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 12px;
+            color: var(--gray);
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
         }
 
         .footer {
@@ -522,7 +465,7 @@
         }
 
         .footer-content {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             display: grid;
             grid-template-columns: 1fr 2fr 1fr;
@@ -572,243 +515,661 @@
             position: relative;
         }
 
-        @media (max-width: 1024px) {
-            .data-table {
-                font-size: 13px;
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideDown 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-width: 90%;
+            text-align: center;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        .notification.success {
+            background: var(--success);
+        }
+
+        .notification.error {
+            background: var(--danger);
+        }
+
+        .notification.info {
+            background: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .card {
+                padding: 20px;
             }
             
             .data-table th,
             .data-table td {
                 padding: 12px 8px;
+                font-size: 13px;
             }
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 20px;
-            color: var(--gray);
-        }
-
-        .loading-spinner {
-            border: 3px solid var(--border);
-            border-top: 3px solid var(--primary);
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-
-        .logout-btn {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 10px 20px;
-            background: var(--danger);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            z-index: 100;
-            transition: all 0.2s;
-        }
-
-        .logout-btn:hover {
-            background: #c0392b;
-            transform: translateY(-1px);
-        }
-
-        .session-timer {
-            position: fixed;
-            top: 70px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 12px;
-            color: var(--gray);
-            border: 1px solid var(--border);
-            z-index: 100;
         }
     </style>
 </head>
 <body>
-    <!-- Écran d'authentification -->
-    <div class="auth-overlay" id="authOverlay">
-        <div class="auth-container">
-            <div class="auth-logo">
-                <img src="https://raw.githubusercontent.com/Lost-Cyrano/BDE/baab1dcab5449b8b4f584ad3dda304dbe8de5fd1/logo_couleurs_claires.svg" alt="BDE Logo">
-            </div>
-            <div class="auth-title">Accès sécurisé</div>
-            <div class="auth-subtitle">Code d'accès à 4 chiffres</div>
-            <input type="password" id="authCode" class="auth-input" placeholder="••••" maxlength="4" inputmode="numeric" autocomplete="off">
-            <button id="authButton" class="auth-button">
-                <i class="fas fa-lock"></i> Accéder
-            </button>
-            <div class="auth-error" id="authError"></div>
+    <!-- Session info -->
+    <div class="session-info" id="sessionInfo">
+        <i class="fas fa-user-circle"></i> Connecté
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-school"></i> Gestion des Paiements</h1>
+            <p>Sortie Scolaire - Suivi des règlements des élèves</p>
         </div>
-    </div>
 
-    <!-- Bouton de déconnexion -->
-    <button class="logout-btn" id="logoutBtn" style="display: none;">
-        <i class="fas fa-sign-out-alt"></i> Déconnexion
-    </button>
+        <div class="main-grid">
+            <!-- Formulaire d'ajout -->
+            <div class="card">
+                <h2 class="card-title"><i class="fas fa-user-plus"></i> Ajouter un élève</h2>
+                
+                <div class="form-group">
+                    <label class="form-label">Prénom</label>
+                    <input type="text" id="firstName" class="form-input" placeholder="Marie">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Nom</label>
+                    <input type="text" id="lastName" class="form-input" placeholder="Dupont">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Classe (3 lettres)</label>
+                    <input type="text" id="class" class="form-input" placeholder="203" maxlength="3">
+                </div>
 
-    <!-- Timer de session -->
-    <div class="session-timer" id="sessionTimer" style="display: none;">
-        Session expire dans: <span id="timerValue">30:00</span>
-    </div>
-
-    <!-- Application principale -->
-    <div class="app-container" id="appContainer">
-        <div class="container">
-            <div class="main-grid">
-                <div class="form-card">
-                    <div class="input-group">
-                        <label class="input-label">Prénom</label>
-                        <input type="text" id="firstName" class="input-field" placeholder="Marie">
-                    </div>
-                    
-                    <div class="input-group">
-                        <label class="input-label">Nom</label>
-                        <input type="text" id="lastName" class="input-field" placeholder="Dupont">
-                    </div>
-                    
-                    <div class="input-group">
-                        <label class="input-label">Classe</label>
-                        <input type="text" id="class" class="input-field" placeholder="203" maxlength="3">
-                    </div>
-
-                    <div class="payment-options">
-                        <div class="payment-card">
+                <div class="payment-section">
+                    <h3><i class="fas fa-euro-sign"></i> Options de paiement</h3>
+                    <div class="payment-grid">
+                        <div class="payment-option">
                             <div class="payment-header">
                                 <span class="payment-name">Forfait</span>
                                 <span class="payment-price">17,5€/jour</span>
                             </div>
                             <select id="forfaitDays" class="payment-select">
-                                <option value="0">0 jour</option>
-                                <option value="1">1 jour</option>
-                                <option value="2">2 jours</option>
+                                <option value="0">0 jour (0,00€)</option>
+                                <option value="1">1 jour (17,50€)</option>
+                                <option value="2">2 jours (35,00€)</option>
                             </select>
                         </div>
                         
-                        <div class="payment-card">
+                        <div class="payment-option">
                             <div class="payment-header">
                                 <span class="payment-name">Location</span>
                                 <span class="payment-price">10€/jour</span>
                             </div>
                             <select id="locationDays" class="payment-select">
-                                <option value="0">0 jour</option>
-                                <option value="1">1 jour</option>
-                                <option value="2">2 jours</option>
+                                <option value="0">0 jour (0,00€)</option>
+                                <option value="1">1 jour (10,00€)</option>
+                                <option value="2">2 jours (20,00€)</option>
                             </select>
                         </div>
                         
-                        <div class="payment-card">
+                        <div class="payment-option">
                             <div class="payment-header">
                                 <span class="payment-name">KeyCard</span>
                                 <span class="payment-price">2€</span>
                             </div>
                             <select id="keycard" class="payment-select">
-                                <option value="0">Non</option>
-                                <option value="1">Oui</option>
+                                <option value="0">Non (0,00€)</option>
+                                <option value="1">Oui (2,00€)</option>
                             </select>
                         </div>
                     </div>
+                </div>
 
-                    <button id="addBtn" class="add-btn">
-                        <i class="fas fa-plus"></i> Ajouter élève
-                    </button>
-
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-label">Nombre d'élèves</div>
-                            <div class="stat-value" id="totalStudents">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Total dépenses</div>
-                            <div class="stat-value" id="totalAmount">0€</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Économies</div>
-                            <div class="stat-value" id="totalSavings">0€</div>
-                        </div>
-                    </div>
-
-                    <button id="downloadBtn" class="download-btn">
-                        <i class="fas fa-file-csv"></i> Télécharger CSV
+                <div class="form-actions">
+                    <button id="addBtn" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Ajouter
                     </button>
                 </div>
 
-                <div class="list-card">
-                    <div class="search-container">
-                        <div class="search-wrapper">
-                            <i class="fas fa-search search-icon"></i>
-                            <input type="text" id="searchInput" class="search-input" placeholder="Rechercher un élève...">
-                        </div>
+                <!-- Statistiques -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Nombre d'élèves</div>
+                        <div class="stat-value" id="totalStudents">0</div>
                     </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total dépenses</div>
+                        <div class="stat-value" id="totalAmount">0€</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Économies</div>
+                        <div class="stat-value" id="totalSavings">0€</div>
+                    </div>
+                </div>
 
-                    <div class="loading" id="loadingData">
-                        <div class="loading-spinner"></div>
-                        <div>Chargement des données...</div>
-                    </div>
+                <button id="downloadBtn" class="btn btn-success">
+                    <i class="fas fa-file-csv"></i> Télécharger CSV
+                </button>
+            </div>
 
-                    <div class="table-container">
-                        <table class="data-table" id="studentsTable">
-                            <thead>
-                                <tr>
-                                    <th>Nom</th>
-                                    <th>Prénom</th>
-                                    <th>Classe</th>
-                                    <th>Forfait</th>
-                                    <th>Location</th>
-                                    <th>KeyCard</th>
-                                    <th>Total</th>
-                                    <th>Économie</th>
-                                    <th>Réel</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody id="studentsBody">
-                                <!-- Rows will be added here -->
-                            </tbody>
-                        </table>
+            <!-- Liste des élèves -->
+            <div class="card">
+                <h2 class="card-title"><i class="fas fa-list"></i> Liste des élèves</h2>
+                
+                <div class="search-container">
+                    <div class="search-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="searchInput" class="search-input" placeholder="Rechercher un élève...">
                     </div>
+                </div>
 
-                    <div id="emptyState" class="empty-state">
-                        <div class="empty-icon">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <p class="empty-text">Aucun élève ajouté</p>
+                <!-- État de chargement -->
+                <div class="loading" id="loadingState">
+                    <div class="loading-spinner"></div>
+                    <p>Chargement des données...</p>
+                </div>
+
+                <!-- État d'erreur -->
+                <div class="error-state" id="errorState" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Erreur de connexion</h3>
+                    <p>Impossible de charger les données. Vérifiez votre connexion.</p>
+                    <button onclick="window.location.href='https://lost-cyrano.github.io/BDE/sortie%20ski/gestions%20des%20frais.html'" 
+                            style="margin-top: 15px; padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer;">
+                        <i class="fas fa-redo"></i> Retour à la connexion
+                    </button>
+                </div>
+
+                <!-- Tableau -->
+                <div class="table-container" id="tableContainer" style="display: none;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Prénom</th>
+                                <th>Classe</th>
+                                <th>Forfait</th>
+                                <th>Location</th>
+                                <th>KeyCard</th>
+                                <th>Total</th>
+                                <th>Économie</th>
+                                <th>Réel</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsBody">
+                            <!-- Les élèves seront ajoutés ici -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- État vide -->
+                <div class="empty-state" id="emptyState" style="display: none;">
+                    <div class="empty-icon">
+                        <i class="fas fa-users"></i>
                     </div>
+                    <p class="empty-text">Aucun élève enregistré</p>
+                    <p style="color: var(--gray); font-size: 14px; margin-top: 10px;">
+                        Commencez par ajouter des élèves à l'aide du formulaire
+                    </p>
                 </div>
             </div>
         </div>
-
-        <footer class="footer">
-            <div class="footer-content">
-                <div class="footer-logo">
-                    <img src="https://raw.githubusercontent.com/Lost-Cyrano/BDE/baab1dcab5449b8b4f584ad3dda304dbe8de5fd1/logo_couleurs_claires.svg" alt="BDE Logo">
-                </div>
-                <div class="footer-info">
-                    <div class="footer-credits">BDE Honoré Romane 2026</div>
-                    <div class="footer-slogan">Il n'y a pas que Redbull qui donne des ailes : vous aussi !</div>
-                    <div class="footer-license">Tous droits réservés</div>
-                </div>
-                <div></div>
-            </div>
-        </footer>
     </div>
 
-    <!-- Firebase SDK - Version corrigée -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-logo">
+                <img src="https://raw.githubusercontent.com/Lost-Cyrano/BDE/baab1dcab5449b8b4f584ad3dda304dbe8de5fd1/logo_couleurs_claires.svg" alt="BDE Logo">
+            </div>
+            <div class="footer-info">
+                <div class="footer-credits">BDE Honoré Romane 2026</div>
+                <div class="footer-slogan">Il n'y a pas que Redbull qui donne des ailes : vous aussi !</div>
+                <div class="footer-license">Tous droits réservés</div>
+            </div>
+            <div></div>
+        </div>
+    </footer>
+
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script> 
-    <script src="https://lost-cyrano.github.io/BDE/sortie%20ski/script.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        // Configuration Firebase
+        const firebaseConfig = {
+            databaseURL: "https://bde-ski-default-rtdb.europe-west1.firebasedatabase.app/"
+        };
+
+        // Tableau de correspondance économies
+        const savingsMap = {
+            17.5: 5.55,
+            10: 3.1,
+            29.5: 9.47,
+            35: 11.1,
+            20: 6.2,
+            57: 18.62,
+            19.5: 6.37,
+            37: 11.92
+        };
+
+        // Variables globales
+        let database = null;
+        let students = [];
+        let editIndex = null;
+        let currentSearch = '';
+        let sessionId = null;
+
+        // Récupérer le sessionId depuis l'URL
+        function getSessionIdFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('session');
+        }
+
+        // Initialiser Firebase avec la session
+        async function initializeFirebase() {
+            sessionId = getSessionIdFromUrl();
+            
+            if (!sessionId) {
+                showError('Session invalide. Veuillez vous reconnecter.');
+                document.getElementById('errorState').style.display = 'block';
+                document.getElementById('loadingState').style.display = 'none';
+                return false;
+            }
+            
+            try {
+                // Initialiser Firebase
+                const app = firebase.initializeApp(firebaseConfig, 'main_app_' + Date.now());
+                database = app.database();
+                
+                // Configurer l'authentification avec le sessionId
+                // Dans Firebase Realtime Database, on passe le sessionId comme variable d'authentification
+                // via databaseAuthVariableOverride
+                return true;
+                
+            } catch (error) {
+                console.error('Erreur Firebase:', error);
+                showError('Erreur d\'initialisation Firebase');
+                return false;
+            }
+        }
+
+        // Fonctions utilitaires
+        function formatCurrency(amount) {
+            return amount.toFixed(2).replace('.', ',') + '€';
+        }
+
+        function calculateSavings(total) {
+            return savingsMap[total] || 0;
+        }
+
+        // Afficher une notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 12px 24px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 1000;
+                animation: slideDown 0.3s ease;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(-50%) translateY(-10px)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Afficher une erreur
+        function showError(message) {
+            showNotification(message, 'error');
+        }
+
+        // Afficher un succès
+        function showSuccess(message) {
+            showNotification(message, 'success');
+        }
+
+        // Charger les étudiants depuis Firebase
+        async function loadStudents() {
+            if (!database) return;
+            
+            try {
+                const studentsRef = database.ref('students');
+                const snapshot = await studentsRef.once('value');
+                
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    students = Object.entries(data).map(([id, studentData]) => ({
+                        id: id,
+                        ...studentData
+                    }));
+                } else {
+                    students = [];
+                }
+                
+                updateStudentList();
+                
+            } catch (error) {
+                console.error('Erreur de chargement:', error);
+                
+                if (error.code === 'PERMISSION_DENIED') {
+                    showError('Session expirée ou invalide');
+                    document.getElementById('errorState').style.display = 'block';
+                    document.getElementById('loadingState').style.display = 'none';
+                } else {
+                    showError('Erreur de chargement des données');
+                }
+            }
+        }
+
+        // Filtrer les étudiants
+        function filterStudents() {
+            const searchTerm = currentSearch.toLowerCase();
+            return students.filter(student => 
+                (student.lastName && student.lastName.toLowerCase().includes(searchTerm)) ||
+                (student.firstName && student.firstName.toLowerCase().includes(searchTerm)) ||
+                (student.class && student.class.toLowerCase().includes(searchTerm))
+            );
+        }
+
+        // Mettre à jour l'affichage du tableau
+        function updateStudentList() {
+            const tbody = document.getElementById('studentsBody');
+            const emptyState = document.getElementById('emptyState');
+            const tableContainer = document.getElementById('tableContainer');
+            const loadingState = document.getElementById('loadingState');
+            
+            // Cacher le chargement
+            loadingState.style.display = 'none';
+            
+            const filteredStudents = filterStudents();
+            
+            if (filteredStudents.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                tableContainer.style.display = 'none';
+                updateStats();
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            tableContainer.style.display = 'block';
+            tbody.innerHTML = '';
+            
+            let totalAmount = 0;
+            let totalSavings = 0;
+            
+            filteredStudents.forEach((student) => {
+                const forfaitPrice = (student.forfaitDays || 0) * 17.5;
+                const locationPrice = (student.locationDays || 0) * 10;
+                const keycardPrice = (student.keycard || 0) * 2;
+                const total = forfaitPrice + locationPrice + keycardPrice;
+                const savings = calculateSavings(total);
+                const realTotal = total - savings;
+                
+                totalAmount += total;
+                totalSavings += savings;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${student.lastName || ''}</strong></td>
+                    <td>${student.firstName || ''}</td>
+                    <td><span class="badge">${student.class || ''}</span></td>
+                    <td>${student.forfaitDays || 0}j<br><small>${formatCurrency(forfaitPrice)}</small></td>
+                    <td>${student.locationDays || 0}j<br><small>${formatCurrency(locationPrice)}</small></td>
+                    <td>${student.keycard ? 'Oui' : 'Non'}<br><small>${formatCurrency(keycardPrice)}</small></td>
+                    <td><strong>${formatCurrency(total)}</strong></td>
+                    <td style="color: var(--success);">${formatCurrency(savings)}</td>
+                    <td><strong style="color: var(--primary);">${formatCurrency(realTotal)}</strong></td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="icon-btn edit" onclick="editStudent('${student.id}')" title="Modifier">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="icon-btn delete" onclick="deleteStudent('${student.id}')" title="Supprimer">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            updateStats(totalAmount, totalSavings);
+        }
+
+        // Mettre à jour les statistiques
+        function updateStats(totalAmount = 0, totalSavings = 0) {
+            document.getElementById('totalStudents').textContent = students.length;
+            document.getElementById('totalAmount').textContent = formatCurrency(totalAmount);
+            document.getElementById('totalSavings').textContent = formatCurrency(totalSavings);
+        }
+
+        // Ajouter ou mettre à jour un étudiant
+        async function addOrUpdateStudent() {
+            if (!database) {
+                showError('Non connecté à la base de données');
+                return;
+            }
+            
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const studentClass = document.getElementById('class').value.trim().toUpperCase();
+            const forfaitDays = parseInt(document.getElementById('forfaitDays').value) || 0;
+            const locationDays = parseInt(document.getElementById('locationDays').value) || 0;
+            const keycard = parseInt(document.getElementById('keycard').value) || 0;
+            
+            // Validation
+            if (!firstName || !lastName || !studentClass) {
+                showError('Veuillez remplir tous les champs');
+                return;
+            }
+            
+            if (studentClass.length !== 3) {
+                showError('La classe doit contenir 3 caractères (ex: 203, TG1)');
+                return;
+            }
+            
+            const studentData = {
+                firstName,
+                lastName,
+                class: studentClass,
+                forfaitDays,
+                locationDays,
+                keycard,
+                updatedAt: Date.now()
+            };
+            
+            try {
+                if (editIndex) {
+                    // Mettre à jour un étudiant existant
+                    const studentRef = database.ref(`students/${editIndex}`);
+                    await studentRef.update(studentData);
+                    showSuccess('Élève mis à jour avec succès');
+                    editIndex = null;
+                    document.getElementById('addBtn').innerHTML = '<i class="fas fa-plus"></i> Ajouter';
+                } else {
+                    // Ajouter un nouvel étudiant
+                    const newStudentRef = database.ref('students').push();
+                    await newStudentRef.set({
+                        ...studentData,
+                        createdAt: Date.now()
+                    });
+                    showSuccess('Élève ajouté avec succès');
+                }
+                
+                // Réinitialiser le formulaire
+                resetForm();
+                
+                // Recharger les données
+                await loadStudents();
+                
+            } catch (error) {
+                console.error('Erreur de sauvegarde:', error);
+                if (error.code === 'PERMISSION_DENIED') {
+                    showError('Session expirée. Veuillez vous reconnecter.');
+                } else {
+                    showError('Erreur de sauvegarde: ' + error.message);
+                }
+            }
+        }
+
+        // Éditer un étudiant
+        async function editStudent(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+            
+            document.getElementById('firstName').value = student.firstName || '';
+            document.getElementById('lastName').value = student.lastName || '';
+            document.getElementById('class').value = student.class || '';
+            document.getElementById('forfaitDays').value = student.forfaitDays || 0;
+            document.getElementById('locationDays').value = student.locationDays || 0;
+            document.getElementById('keycard').value = student.keycard || 0;
+            
+            editIndex = studentId;
+            document.getElementById('addBtn').innerHTML = '<i class="fas fa-save"></i> Mettre à jour';
+            
+            // Scroll vers le formulaire sur mobile
+            if (window.innerWidth < 768) {
+                document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // Supprimer un étudiant
+        async function deleteStudent(studentId) {
+            if (!confirm('Voulez-vous vraiment supprimer cet élève ?')) {
+                return;
+            }
+            
+            try {
+                const studentRef = database.ref(`students/${studentId}`);
+                await studentRef.remove();
+                showSuccess('Élève supprimé avec succès');
+                await loadStudents();
+            } catch (error) {
+                console.error('Erreur de suppression:', error);
+                if (error.code === 'PERMISSION_DENIED') {
+                    showError('Session expirée. Veuillez vous reconnecter.');
+                } else {
+                    showError('Erreur lors de la suppression');
+                }
+            }
+        }
+
+        // Réinitialiser le formulaire
+        function resetForm() {
+            document.getElementById('firstName').value = '';
+            document.getElementById('lastName').value = '';
+            document.getElementById('class').value = '';
+            document.getElementById('forfaitDays').value = '0';
+            document.getElementById('locationDays').value = '0';
+            document.getElementById('keycard').value = '0';
+        }
+
+        // Télécharger en CSV
+        function downloadCSV() {
+            if (students.length === 0) {
+                showError('Aucun élève à exporter');
+                return;
+            }
+            
+            let csv = 'Nom;Prénom;Classe;Forfait_Jours;Forfait_Montant;Location_Jours;Location_Montant;KeyCard;KeyCard_Montant;Total;Economie;Total_Reel\n';
+            
+            students.forEach(student => {
+                const forfaitPrice = (student.forfaitDays || 0) * 17.5;
+                const locationPrice = (student.locationDays || 0) * 10;
+                const keycardPrice = (student.keycard || 0) * 2;
+                const total = forfaitPrice + locationPrice + keycardPrice;
+                const savings = calculateSavings(total);
+                const realTotal = total - savings;
+                
+                csv += `${student.lastName || ''};${student.firstName || ''};${student.class || ''};`;
+                csv += `${student.forfaitDays || 0};${forfaitPrice.toFixed(2)};`;
+                csv += `${student.locationDays || 0};${locationPrice.toFixed(2)};`;
+                csv += `${student.keycard ? 'Oui' : 'Non'};${keycardPrice.toFixed(2)};`;
+                csv += `${total.toFixed(2)};${savings.toFixed(2)};${realTotal.toFixed(2)}\n`;
+            });
+            
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `paiements_sortie_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showSuccess('Export CSV téléchargé');
+        }
+
+        // Initialisation
+        async function initializeApp() {
+            // Vérifier la session
+            const hasValidSession = await initializeFirebase();
+            
+            if (hasValidSession) {
+                // Charger les étudiants
+                await loadStudents();
+                
+                // Mettre à jour l'info de session
+                document.getElementById('sessionInfo').innerHTML = 
+                    `<i class="fas fa-user-circle"></i> Connecté • ${students.length} élève(s)`;
+            }
+        }
+
+        // Gestion des événements
+        document.getElementById('addBtn').addEventListener('click', addOrUpdateStudent);
+        document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
+        
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            currentSearch = e.target.value;
+            updateStudentList();
+        });
+
+        document.getElementById('class').addEventListener('input', function(e) {
+            this.value = this.value.toUpperCase().slice(0, 3);
+        });
+
+        // Empêcher la soumission du formulaire avec Enter
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+            }
+        });
+
+        // Initialiser l'application
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
 </body>
 </html>
