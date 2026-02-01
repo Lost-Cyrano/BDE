@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Gestion Sortie Scolaire</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #e0e7ff;
+            --secondary: #7c3aed;
+            --light: #f8fafc;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --gray-light: #e2e8f0;
+            --success: #10b981;
+            --danger: #ef4444;
+            --border: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .auth-container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 480px;
+            padding: 50px 40px;
+            text-align: center;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo-container {
+            margin-bottom: 40px;
+        }
+
+        .logo-container img {
+            height: 80px;
+            width: auto;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--gray);
+            font-size: 16px;
+            margin-bottom: 40px;
+            line-height: 1.5;
+        }
+
+        .code-input-container {
+            margin-bottom: 30px;
+        }
+
+        .code-label {
+            display: block;
+            text-align: left;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 12px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .code-input {
+            width: 100%;
+            padding: 20px;
+            font-size: 24px;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 15px;
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            background: var(--light);
+            color: var(--dark);
+            transition: all 0.3s;
+            outline: none;
+        }
+
+        .code-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--primary-light);
+            transform: translateY(-2px);
+        }
+
+        .code-input.error {
+            border-color: var(--danger);
+            animation: shake 0.4s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        .hint {
+            font-size: 13px;
+            color: var(--gray);
+            margin-top: 10px;
+            text-align: left;
+        }
+
+        .auth-button {
+            width: 100%;
+            padding: 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .auth-button:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3);
+        }
+
+        .auth-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .auth-button.loading {
+            background: var(--gray);
+        }
+
+        .auth-button.loading i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            color: var(--danger);
+            font-size: 14px;
+            margin-top: 20px;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px;
+            border-radius: 10px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+
+        .error-message.hidden {
+            display: none;
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border);
+            color: var(--gray);
+            font-size: 14px;
+        }
+
+        .footer p {
+            margin: 5px 0;
+        }
+
+        .footer .copyright {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 480px) {
+            .auth-container {
+                padding: 40px 25px;
+                border-radius: 20px;
+            }
+            
+            .title {
+                font-size: 24px;
+            }
+            
+            .code-input {
+                font-size: 20px;
+                padding: 18px;
+                letter-spacing: 12px;
+            }
+            
+            .auth-button {
+                padding: 18px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/Lost-Cyrano/BDE/baab1dcab5449b8b4f584ad3dda304dbe8de5fd1/logo_couleurs_claires.svg" alt="BDE Logo">
+        </div>
+        
+        <h1 class="title">Accès Administrateur</h1>
+        <p class="subtitle">Entrez le code d'accès pour gérer les paiements de la sortie scolaire</p>
+        
+        <div class="code-input-container">
+            <label class="code-label">Code d'accès</label>
+            <input type="password" 
+                   id="codeInput" 
+                   class="code-input" 
+                   placeholder="••••" 
+                   maxlength="4" 
+                   inputmode="numeric" 
+                   autocomplete="off"
+                   autofocus>
+            <div class="hint">Code à 4 chiffres requis</div>
+        </div>
+        
+        <button id="authButton" class="auth-button">
+            <i class="fas fa-lock"></i> Se connecter
+        </button>
+        
+        <div id="errorMessage" class="error-message hidden">
+            <i class="fas fa-exclamation-circle"></i>
+            <span id="errorText"></span>
+        </div>
+        
+        <div class="footer">
+            <p>BDE Honoré Romane 2026</p>
+            <p>Gestion des paiements - Sortie Scolaire</p>
+            <p class="copyright">Tous droits réservés</p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        // Configuration Firebase
+        const firebaseConfig = {
+            databaseURL: "https://bde-ski-default-rtdb.europe-west1.firebasedatabase.app/"
+        };
+
+        // Initialiser Firebase
+        let app;
+        try {
+            app = firebase.initializeApp(firebaseConfig);
+        } catch (error) {
+            app = firebase.app();
+        }
+        const database = app.database();
+
+        // Éléments DOM
+        const codeInput = document.getElementById('codeInput');
+        const authButton = document.getElementById('authButton');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+
+        // Fonction pour afficher une erreur
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+            codeInput.classList.add('error');
+            
+            setTimeout(() => {
+                codeInput.classList.remove('error');
+            }, 2000);
+        }
+
+        // Fonction pour cacher l'erreur
+        function hideError() {
+            errorMessage.classList.add('hidden');
+            codeInput.classList.remove('error');
+        }
+
+        // Fonction SHA256 pour hacher le code
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Fonction pour générer un ID de session unique
+        function generateSessionId() {
+            const timestamp = Date.now();
+            const random = Math.random().toString(36).substr(2, 9);
+            return `session_${timestamp}_${random}`;
+        }
+
+        // Fonction principale d'authentification
+        async function authenticate() {
+            const code = codeInput.value.trim();
+            
+            // Validation basique
+            if (code.length !== 4 || !/^\d{4}$/.test(code)) {
+                showError("Le code doit contenir exactement 4 chiffres");
+                return;
+            }
+            
+            try {
+                // Activer l'état de chargement
+                authButton.disabled = true;
+                authButton.classList.add('loading');
+                authButton.innerHTML = '<i class="fas fa-spinner"></i> Vérification en cours...';
+                hideError();
+                
+                // 1. Calculer le hash du code
+                const codeHash = await sha256(code);
+                
+                // 2. Vérifier si le code est valide en lisant la liste des codes valides
+                const validCodesRef = database.ref('access_control/valid_codes');
+                const snapshot = await validCodesRef.once('value');
+                
+                if (!snapshot.exists()) {
+                    // Si pas de codes configurés, vérifier directement avec un code par défaut
+                    // Dans un cas réel, vous auriez configuré votre code dans Firebase
+                    throw new Error("Aucun code configuré dans la base de données");
+                }
+                
+                const validCodes = snapshot.val();
+                const isValidCode = Object.values(validCodes).some(validCode => validCode === codeHash);
+                
+                if (!isValidCode) {
+                    throw new Error("Code incorrect");
+                }
+                
+                // 3. Créer une nouvelle session
+                const sessionId = generateSessionId();
+                const sessionData = {
+                    created: Date.now(),
+                    expires: Date.now() + (24 * 60 * 60 * 1000), // 24 heures
+                    active: true,
+                    codeHash: codeHash
+                };
+                
+                // 4. Sauvegarder la session dans Firebase
+                await database.ref(`valid_sessions/${sessionId}`).set(sessionData);
+                
+                // 5. Rediriger vers la page principale avec le token de session
+                const mainPageUrl = "https://lost-cyrano.github.io/BDE/sortie%20ski/main.html";
+                const redirectUrl = `${mainPageUrl}?session=${sessionId}`;
+                
+                // Afficher message de succès avant redirection
+                authButton.innerHTML = '<i class="fas fa-check"></i> Connexion réussie !';
+                authButton.style.backgroundColor = 'var(--success)';
+                
+                // Rediriger après un court délai
+                setTimeout(() => {
+                    window.location.href = redirectUrl;
+                }, 1000);
+                
+            } catch (error) {
+                console.error("Erreur d'authentification:", error);
+                
+                // Gestion des erreurs spécifiques
+                if (error.message.includes("PERMISSION_DENIED") || error.message.includes("permission-denied")) {
+                    showError("Accès refusé. Vérifiez les règles Firebase.");
+                } else if (error.message.includes("Aucun code configuré")) {
+                    showError("Configuration manquante. Contactez l'administrateur.");
+                } else if (error.message.includes("Code incorrect")) {
+                    showError("Code incorrect. Veuillez réessayer.");
+                } else if (error.message.includes("Network Error") || error.message.includes("Failed to fetch")) {
+                    showError("Erreur réseau. Vérifiez votre connexion internet.");
+                } else {
+                    showError("Erreur de connexion: " + error.message);
+                }
+                
+                // Réinitialiser le bouton
+                authButton.disabled = false;
+                authButton.classList.remove('loading');
+                authButton.innerHTML = '<i class="fas fa-lock"></i> Se connecter';
+                authButton.style.backgroundColor = '';
+                
+                // Vider le champ et remettre le focus
+                codeInput.value = '';
+                codeInput.focus();
+            }
+        }
+
+        // Gestion des événements
+        codeInput.addEventListener('input', function(e) {
+            // Ne garder que les chiffres et limiter à 4
+            this.value = this.value.replace(/\D/g, '').slice(0, 4);
+            hideError();
+            
+            // Si 4 chiffres entrés, activer le bouton
+            if (this.value.length === 4) {
+                authButton.disabled = false;
+            }
+        });
+
+        codeInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && this.value.length === 4) {
+                authenticate();
+            }
+        });
+
+        authButton.addEventListener('click', authenticate);
+
+        // Focus automatique sur le champ de code
+        codeInput.focus();
+
+        // Configuration initiale si nécessaire (pour développement)
+        async function initializeDatabase() {
+            try {
+                // Vérifier si la structure de base existe
+                const accessControlRef = database.ref('access_control');
+                const snapshot = await accessControlRef.once('value');
+                
+                if (!snapshot.exists()) {
+                    console.log("Structure de base non trouvée. Création recommandée dans Firebase Console.");
+                }
+            } catch (error) {
+                console.error("Erreur d'initialisation:", error);
+            }
+        }
+
+        // Appeler l'initialisation au chargement
+        document.addEventListener('DOMContentLoaded', initializeDatabase);
+    </script>
+</body>
+</html>
