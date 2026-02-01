@@ -806,9 +806,9 @@
         </footer>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
+    <!-- Firebase SDK - Version corrigée -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     
     <script>
         // Configuration Firebase
@@ -836,7 +836,7 @@
         let editIndex = null;
         let currentSearch = '';
 
-        // Fonction SHA256
+        // Fonction SHA256 corrigée
         async function sha256(message) {
             const msgBuffer = new TextEncoder().encode(message);
             const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -849,7 +849,7 @@
             return Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         }
 
-        // Fonction d'authentification
+        // Fonction d'authentification corrigée
         async function authenticateWithCode(code) {
             const authButton = document.getElementById('authButton');
             const errorDiv = document.getElementById('authError');
@@ -868,20 +868,23 @@
                 
                 // Initialiser Firebase sans authentification
                 if (app) {
-                    app.delete();
+                    try { app.delete(); } catch(e) {}
                 }
-                app = firebase.initializeApp(firebaseConfig, 'temp_auth');
-                database = firebase.getDatabase(app);
+                
+                // Utiliser une instance temporaire
+                app = firebase.initializeApp(firebaseConfig, 'temp_auth_' + Date.now());
+                database = firebase.database();
                 
                 // 1. Lire la clé publique
-                const accessControlRef = firebase.ref(database, 'access_control');
-                const accessSnapshot = await firebase.get(accessControlRef);
+                const accessControlRef = database.ref('access_control');
+                const accessSnapshot = await accessControlRef.once('value');
                 
                 if (!accessSnapshot.exists()) {
                     throw new Error('Configuration manquante dans la base de données');
                 }
                 
-                const publicKey = accessSnapshot.val().public_key;
+                const accessData = accessSnapshot.val();
+                const publicKey = accessData.public_key;
                 
                 // 2. Vérifier que le code correspond à la clé publique
                 const codeHash = await sha256(code);
@@ -895,8 +898,8 @@
                 const timestamp = Date.now();
                 
                 // 4. Sauvegarder le challenge
-                const challengeRef = firebase.ref(database, `challenges/${challengeId}`);
-                await firebase.set(challengeRef, {
+                const challengeRef = database.ref(`challenges/${challengeId}`);
+                await challengeRef.set({
                     challenge: challenge,
                     timestamp: timestamp
                 });
@@ -906,17 +909,19 @@
                 const responseHash = await sha256(response);
                 
                 // 6. Sauvegarder la réponse valide
-                const responseRef = firebase.ref(database, `valid_responses/${responseHash}`);
-                await firebase.set(responseRef, {
+                const responseRef = database.ref(`valid_responses/${responseHash}`);
+                await responseRef.set({
                     challengeId: challengeId,
                     response: response,
                     timestamp: timestamp
                 });
                 
-                // 7. Réinitialiser Firebase avec le token d'authentification
-                app.delete();
-                app = firebase.initializeApp(firebaseConfig, 'authenticated_app');
-                database = firebase.getDatabase(app);
+                // 7. Nettoyer l'instance temporaire
+                try { app.delete(); } catch(e) {}
+                
+                // 8. Créer une nouvelle instance avec l'auth token
+                app = firebase.initializeApp(firebaseConfig, 'authenticated_app_' + Date.now());
+                database = firebase.database();
                 
                 // Stocker le token
                 authToken = responseHash;
@@ -928,11 +933,18 @@
             } catch (error) {
                 console.error('Erreur d\'authentification:', error);
                 
+                // Nettoyer en cas d'erreur
+                if (app) {
+                    try { app.delete(); } catch(e) {}
+                }
+                
                 if (error.message.includes('PERMISSION_DENIED') || 
                     error.message.includes('permission-denied')) {
                     showAuthError('Code incorrect ou accès refusé');
                 } else if (error.message.includes('Configuration manquante')) {
                     showAuthError('Erreur de configuration de la base de données');
+                } else if (error.message.includes('Code incorrect')) {
+                    showAuthError('Code incorrect');
                 } else {
                     showAuthError('Erreur de connexion: ' + error.message);
                 }
@@ -955,6 +967,7 @@
             input.classList.add('error');
             
             setTimeout(() => {
+                input.classList.remove('error');
                 errorDiv.textContent = '';
             }, 5000);
         }
@@ -977,20 +990,29 @@
             }
             
             try {
-                // Initialiser avec le token sauvegardé
+                // Nettoyer toute instance existante
                 if (app) {
-                    app.delete();
+                    try { app.delete(); } catch(e) {}
                 }
-                app = firebase.initializeApp(firebaseConfig, 'authenticated_app');
-                database = firebase.getDatabase(app);
+                
+                // Initialiser avec le token sauvegardé
+                app = firebase.initializeApp(firebaseConfig, 'existing_session_' + Date.now());
+                database = firebase.database();
                 authToken = savedToken;
                 
                 // Tester la connexion
-                await firebase.ref(database, 'students').limitToFirst(1).once('value');
+                const testRef = database.ref('students');
+                await testRef.limitToFirst(1).once('value');
                 
                 return true;
             } catch (error) {
                 console.error('Session invalide:', error);
+                
+                // Nettoyer en cas d'erreur
+                if (app) {
+                    try { app.delete(); } catch(e) {}
+                }
+                
                 localStorage.removeItem('authToken');
                 localStorage.removeItem('authTimestamp');
                 return false;
@@ -1049,7 +1071,11 @@
             localStorage.removeItem('authTimestamp');
             
             if (app) {
-                app.delete();
+                try {
+                    app.delete();
+                } catch (e) {
+                    console.log('Erreur lors de la suppression de l\'app:', e);
+                }
                 app = null;
                 database = null;
             }
@@ -1082,14 +1108,17 @@
 
         // Gestion des données
         async function loadStudents() {
-            if (!database) return;
+            if (!database) {
+                showMessage('Base de données non connectée', 'error');
+                return;
+            }
             
             const loadingElement = document.getElementById('loadingData');
             loadingElement.style.display = 'block';
             
             try {
-                const studentsRef = firebase.ref(database, 'students');
-                const snapshot = await firebase.get(studentsRef);
+                const studentsRef = database.ref('students');
+                const snapshot = await studentsRef.once('value');
                 
                 if (snapshot.exists()) {
                     const data = snapshot.val();
@@ -1108,7 +1137,7 @@
                     showMessage('Session expirée. Veuillez vous reconnecter.', 'error');
                     logout();
                 } else {
-                    showMessage('Erreur de chargement des données', 'error');
+                    showMessage('Erreur de chargement des données: ' + error.message, 'error');
                 }
             } finally {
                 loadingElement.style.display = 'none';
@@ -1118,9 +1147,9 @@
         function filterStudents() {
             const searchTerm = currentSearch.toLowerCase();
             return students.filter(student => 
-                student.lastName.toLowerCase().includes(searchTerm) ||
-                student.firstName.toLowerCase().includes(searchTerm) ||
-                student.class.toLowerCase().includes(searchTerm)
+                (student.lastName && student.lastName.toLowerCase().includes(searchTerm)) ||
+                (student.firstName && student.firstName.toLowerCase().includes(searchTerm)) ||
+                (student.class && student.class.toLowerCase().includes(searchTerm))
             );
         }
 
@@ -1142,10 +1171,10 @@
             let totalAmount = 0;
             let totalSavings = 0;
             
-            filteredStudents.forEach((student, index) => {
-                const forfaitPrice = student.forfaitDays * 17.5;
-                const locationPrice = student.locationDays * 10;
-                const keycardPrice = student.keycard * 2;
+            filteredStudents.forEach((student) => {
+                const forfaitPrice = (student.forfaitDays || 0) * 17.5;
+                const locationPrice = (student.locationDays || 0) * 10;
+                const keycardPrice = (student.keycard || 0) * 2;
                 const total = forfaitPrice + locationPrice + keycardPrice;
                 const savings = calculateSavings(total);
                 const realTotal = total - savings;
@@ -1155,11 +1184,11 @@
                 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><strong>${student.lastName}</strong></td>
-                    <td>${student.firstName}</td>
-                    <td><span class="badge">${student.class}</span></td>
-                    <td class="amount-cell">${student.forfaitDays}j</td>
-                    <td class="amount-cell">${student.locationDays}j</td>
+                    <td><strong>${student.lastName || ''}</strong></td>
+                    <td>${student.firstName || ''}</td>
+                    <td><span class="badge">${student.class || ''}</span></td>
+                    <td class="amount-cell">${student.forfaitDays || 0}j</td>
+                    <td class="amount-cell">${student.locationDays || 0}j</td>
                     <td class="amount-cell">${student.keycard ? 'Oui' : 'Non'}</td>
                     <td class="amount-cell">${formatCurrency(total)}</td>
                     <td class="amount-cell" style="color: var(--success);">${formatCurrency(savings)}</td>
@@ -1196,9 +1225,9 @@
             const firstName = document.getElementById('firstName').value.trim();
             const lastName = document.getElementById('lastName').value.trim();
             const studentClass = document.getElementById('class').value.trim().toUpperCase();
-            const forfaitDays = parseInt(document.getElementById('forfaitDays').value);
-            const locationDays = parseInt(document.getElementById('locationDays').value);
-            const keycard = parseInt(document.getElementById('keycard').value);
+            const forfaitDays = parseInt(document.getElementById('forfaitDays').value) || 0;
+            const locationDays = parseInt(document.getElementById('locationDays').value) || 0;
+            const keycard = parseInt(document.getElementById('keycard').value) || 0;
             
             // Validation
             if (!firstName || !lastName || !studentClass) {
@@ -1224,15 +1253,15 @@
             try {
                 if (editIndex) {
                     // Mettre à jour un élève existant
-                    const studentRef = firebase.ref(database, `students/${editIndex}`);
-                    await firebase.update(studentRef, studentData);
+                    const studentRef = database.ref(`students/${editIndex}`);
+                    await studentRef.update(studentData);
                     showMessage('Élève mis à jour avec succès', 'success');
                     editIndex = null;
                     document.getElementById('addBtn').innerHTML = '<i class="fas fa-plus"></i> Ajouter élève';
                 } else {
                     // Ajouter un nouvel élève
-                    const newStudentRef = firebase.ref(database, 'students').push();
-                    await firebase.set(newStudentRef, {
+                    const newStudentRef = database.ref('students').push();
+                    await newStudentRef.set({
                         ...studentData,
                         createdAt: Date.now()
                     });
@@ -1260,12 +1289,12 @@
             const student = students.find(s => s.id === studentId);
             if (!student) return;
             
-            document.getElementById('firstName').value = student.firstName;
-            document.getElementById('lastName').value = student.lastName;
-            document.getElementById('class').value = student.class;
-            document.getElementById('forfaitDays').value = student.forfaitDays;
-            document.getElementById('locationDays').value = student.locationDays;
-            document.getElementById('keycard').value = student.keycard;
+            document.getElementById('firstName').value = student.firstName || '';
+            document.getElementById('lastName').value = student.lastName || '';
+            document.getElementById('class').value = student.class || '';
+            document.getElementById('forfaitDays').value = student.forfaitDays || 0;
+            document.getElementById('locationDays').value = student.locationDays || 0;
+            document.getElementById('keycard').value = student.keycard || 0;
             
             editIndex = studentId;
             document.getElementById('addBtn').innerHTML = '<i class="fas fa-save"></i> Mettre à jour';
@@ -1280,8 +1309,8 @@
             if (!confirm('Supprimer cet élève ?')) return;
             
             try {
-                const studentRef = firebase.ref(database, `students/${studentId}`);
-                await firebase.remove(studentRef);
+                const studentRef = database.ref(`students/${studentId}`);
+                await studentRef.remove();
                 showMessage('Élève supprimé avec succès', 'success');
                 await loadStudents();
             } catch (error) {
@@ -1313,16 +1342,16 @@
             let csv = 'Nom;Prénom;Classe;Forfait_Jours;Forfait_Montant;Location_Jours;Location_Montant;KeyCard;KeyCard_Montant;Total;Economie;Total_Reel\n';
             
             students.forEach(student => {
-                const forfaitPrice = student.forfaitDays * 17.5;
-                const locationPrice = student.locationDays * 10;
-                const keycardPrice = student.keycard * 2;
+                const forfaitPrice = (student.forfaitDays || 0) * 17.5;
+                const locationPrice = (student.locationDays || 0) * 10;
+                const keycardPrice = (student.keycard || 0) * 2;
                 const total = forfaitPrice + locationPrice + keycardPrice;
                 const savings = calculateSavings(total);
                 const realTotal = total - savings;
                 
-                csv += `${student.lastName};${student.firstName};${student.class};`;
-                csv += `${student.forfaitDays};${forfaitPrice.toFixed(2)};`;
-                csv += `${student.locationDays};${locationPrice.toFixed(2)};`;
+                csv += `${student.lastName || ''};${student.firstName || ''};${student.class || ''};`;
+                csv += `${student.forfaitDays || 0};${forfaitPrice.toFixed(2)};`;
+                csv += `${student.locationDays || 0};${locationPrice.toFixed(2)};`;
                 csv += `${student.keycard ? 'Oui' : 'Non'};${keycardPrice.toFixed(2)};`;
                 csv += `${total.toFixed(2)};${savings.toFixed(2)};${realTotal.toFixed(2)}\n`;
             });
@@ -1350,6 +1379,7 @@
                 font-weight: 500;
                 z-index: 1000;
                 animation: slideDown 0.3s ease;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             `;
             
             if (type === 'success') {
@@ -1364,7 +1394,13 @@
             document.body.appendChild(notification);
             
             setTimeout(() => {
-                notification.remove();
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(-50%) translateY(-10px)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
             }, 3000);
         }
 
@@ -1421,6 +1457,22 @@
                 e.preventDefault();
             }
         });
+
+        // Ajouter l'animation CSS pour les notifications
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideDown {
+                from {
+                    opacity: 0;
+                    transform: translateX(-50%) translateY(-20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(-50%) translateY(0);
+                }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
