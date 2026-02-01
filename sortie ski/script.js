@@ -15,35 +15,20 @@
         37: 11.92
     };
 
-    let currentApp = null;
     let database = null;
     let authToken = null;
+    let sessionTimer = null;
     let students = [];
     let editIndex = null;
     let currentSearch = '';
-    let currentChallengeId = null;
-    let currentResponseHash = null;
 
-    // Initialiser Firebase
-    function initializeFirebase(appName = 'default') {
+    // Initialiser Firebase une seule fois
+    function initializeFirebase() {
         try {
-            return firebase.initializeApp(firebaseConfig, appName);
+            return firebase.initializeApp(firebaseConfig);
         } catch (error) {
-            return firebase.app(appName);
+            return firebase.app();
         }
-    }
-
-    // Nettoyer une instance Firebase
-    function cleanupFirebaseApp(app) {
-        if (app && typeof app.delete === 'function') {
-            try {
-                app.delete();
-                return true;
-            } catch (e) {
-                return false;
-            }
-        }
-        return false;
     }
 
     // Fonction SHA256
@@ -59,38 +44,7 @@
         return Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
 
-    // Nettoyer les données d'authentification dans Firebase
-    async function cleanupAuthData(responseHash, challengeId) {
-        let cleanupDb = null;
-        
-        try {
-            // Créer une instance temporaire pour le nettoyage
-            const tempApp = initializeFirebase('cleanup_' + Date.now());
-            cleanupDb = tempApp.database();
-            
-            // Nettoyer la réponse
-            if (responseHash) {
-                await cleanupDb.ref(`valid_responses/${responseHash}`).remove();
-            }
-            
-            // Nettoyer le challenge
-            if (challengeId) {
-                await cleanupDb.ref(`challenges/${challengeId}`).remove();
-            }
-            
-            // Nettoyer l'instance temporaire
-            cleanupFirebaseApp(tempApp);
-            
-        } catch (error) {
-            // Ignorer les erreurs de nettoyage (les données peuvent déjà être nettoyées)
-        } finally {
-            if (cleanupDb && cleanupDb.app) {
-                cleanupFirebaseApp(cleanupDb.app);
-            }
-        }
-    }
-
-    // Authentification
+    // Authentification SIMPLIFIÉE - sans vérification de temps dans les règles
     async function authenticateWithCode(code) {
         const authButton = document.getElementById('authButton');
         const errorDiv = document.getElementById('authError');
@@ -100,24 +54,17 @@
             return null;
         }
         
-        let tempApp = null;
-        
         try {
             authButton.classList.add('loading');
             authButton.disabled = true;
             authButton.innerHTML = '<i class="fas fa-spinner"></i> Vérification...';
             
-            // Nettoyer l'instance précédente si elle existe
-            if (currentApp) {
-                cleanupFirebaseApp(currentApp);
-            }
+            // Initialiser Firebase
+            const app = initializeFirebase();
+            database = app.database();
             
-            // 1. Initialiser Firebase temporairement
-            tempApp = initializeFirebase('temp_auth_' + Date.now());
-            const tempDb = tempApp.database();
-            
-            // 2. Lire la clé publique
-            const accessSnapshot = await tempDb.ref('access_control').once('value');
+            // 1. Lire la clé publique
+            const accessSnapshot = await database.ref('access_control').once('value');
             
             if (!accessSnapshot.exists()) {
                 throw new Error('Configuration manquante dans la base de données');
@@ -130,48 +77,40 @@
                 throw new Error('Code incorrect');
             }
             
-            // 3. Générer et sauvegarder le challenge
-            currentChallengeId = generateId();
+            // 2. Générer un challenge
+            const challengeId = generateId();
             const challenge = generateId();
+            const timestamp = Date.now();
             
-            await tempDb.ref(`challenges/${currentChallengeId}`).set({
+            // 3. Sauvegarder le challenge (juste pour la validation initiale)
+            await database.ref(`challenges/${challengeId}`).set({
                 challenge: challenge,
-                timestamp: Date.now()
+                timestamp: timestamp
             });
             
             // 4. Calculer et sauvegarder la réponse
             const response = await sha256(code + challenge);
-            currentResponseHash = await sha256(response);
+            const responseHash = await sha256(response);
             
-            await tempDb.ref(`valid_responses/${currentResponseHash}`).set({
-                challengeId: currentChallengeId,
+            await database.ref(`valid_responses/${responseHash}`).set({
+                challengeId: challengeId,
                 response: response,
-                timestamp: Date.now()
+                timestamp: timestamp,
+                // Ajouter un champ "active" pour éviter les vérifications de temps
+                active: true,
+                sessionStart: timestamp
             });
             
-            // 5. Stocker le token localement
-            authToken = currentResponseHash;
+            // 5. Stocker le token localement POUR 30 MINUTES
+            authToken = responseHash;
+            const sessionStart = Date.now();
             localStorage.setItem('authToken', authToken);
-            localStorage.setItem('challengeId', currentChallengeId);
-            localStorage.setItem('responseHash', currentResponseHash);
-            
-            // 6. Nettoyer l'instance temporaire
-            cleanupFirebaseApp(tempApp);
-            tempApp = null;
-            
-            // 7. Créer l'instance principale
-            currentApp = initializeFirebase('main_app_' + Date.now());
-            database = currentApp.database();
+            localStorage.setItem('sessionStart', sessionStart.toString());
             
             return authToken;
             
         } catch (error) {
             console.error('Erreur d\'authentification:', error);
-            
-            // Nettoyer en cas d'erreur
-            if (tempApp) {
-                cleanupFirebaseApp(tempApp);
-            }
             
             if (error.message.includes('PERMISSION_DENIED') || 
                 error.message.includes('permission-denied')) {
@@ -206,44 +145,44 @@
         }, 5000);
     }
 
-    // Vérifier l'authentification au chargement
+    // Vérifier l'authentification au chargement - VERSION CORRIGÉE
     async function checkExistingAuth() {
         const savedToken = localStorage.getItem('authToken');
-        const savedChallengeId = localStorage.getItem('challengeId');
-        const savedResponseHash = localStorage.getItem('responseHash');
+        const savedSessionStart = localStorage.getItem('sessionStart');
         
-        if (!savedToken || !savedChallengeId || !savedResponseHash) {
+        if (!savedToken || !savedSessionStart) {
+            return false;
+        }
+        
+        // Vérifier si la session est encore valide (30 minutes)
+        const sessionAge = Date.now() - parseInt(savedSessionStart);
+        if (sessionAge > 30 * 60 * 1000) {
+            // Session expirée côté client
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('sessionStart');
             return false;
         }
         
         try {
-            // Nettoyer l'instance précédente si elle existe
-            if (currentApp) {
-                cleanupFirebaseApp(currentApp);
-            }
-            
-            // Initialiser avec le token sauvegardé
-            currentApp = initializeFirebase('existing_session_' + Date.now());
-            database = currentApp.database();
+            // Initialiser Firebase
+            const app = initializeFirebase();
+            database = app.database();
             authToken = savedToken;
-            currentChallengeId = savedChallengeId;
-            currentResponseHash = savedResponseHash;
             
-            // Tester la connexion
+            // Tester la connexion - sans vérification de temps dans Firebase
             await database.ref('students').limitToFirst(1).once('value');
             
             return true;
+            
         } catch (error) {
-            console.error('Session invalide:', error);
+            console.error('Erreur de vérification de session:', error);
             
-            // En cas d'erreur, nettoyer le localStorage
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('challengeId');
-            localStorage.removeItem('responseHash');
-            
-            if (currentApp) {
-                cleanupFirebaseApp(currentApp);
-                currentApp = null;
+            // Si erreur PERMISSION_DENIED, essayer de recréer le token
+            if (error.code === 'PERMISSION_DENIED') {
+                // La réponse dans Firebase a peut-être expiré
+                // On considère la session comme invalide
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('sessionStart');
             }
             
             return false;
@@ -255,43 +194,62 @@
         document.getElementById('authOverlay').style.display = 'none';
         document.getElementById('appContainer').style.display = 'block';
         document.getElementById('logoutBtn').style.display = 'flex';
-        document.getElementById('sessionTimer').style.display = 'none'; // Cacher le timer
+        document.getElementById('sessionTimer').style.display = 'block';
         
         loadStudents();
+        startSessionTimer();
         document.getElementById('searchInput').focus();
     }
 
-    // Déconnexion avec nettoyage complet
-    async function logout() {
-        // Récupérer les IDs avant de nettoyer le localStorage
-        const challengeId = currentChallengeId || localStorage.getItem('challengeId');
-        const responseHash = currentResponseHash || localStorage.getItem('responseHash');
+    // Gérer le timer de session - VERSION CORRIGÉE
+    function startSessionTimer() {
+        const savedSessionStart = parseInt(localStorage.getItem('sessionStart'));
+        if (!savedSessionStart) return;
         
-        // Nettoyer les données dans Firebase
-        await cleanupAuthData(responseHash, challengeId);
+        clearInterval(sessionTimer);
         
-        // Nettoyer le localStorage
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('challengeId');
-        localStorage.removeItem('responseHash');
-        
-        // Nettoyer l'instance Firebase
-        if (currentApp) {
-            cleanupFirebaseApp(currentApp);
-            currentApp = null;
+        function updateTimer() {
+            const now = Date.now();
+            const elapsed = now - savedSessionStart;
+            const remaining = 30 * 60 * 1000 - elapsed;
+            
+            if (remaining <= 0) {
+                // Session expirée - déconnecter
+                logout();
+                return;
+            }
+            
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+            document.getElementById('timerValue').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
+        
+        // Mettre à jour immédiatement puis toutes les secondes
+        updateTimer();
+        sessionTimer = setInterval(updateTimer, 1000);
+    }
+
+    // Déconnexion SIMPLIFIÉE
+    function logout() {
+        clearInterval(sessionTimer);
+        
+        // NE PAS nettoyer les données Firebase (pour éviter les problèmes)
+        
+        // Nettoyer le localStorage seulement
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('sessionStart');
         
         // Réinitialiser les variables
         database = null;
         authToken = null;
-        currentChallengeId = null;
-        currentResponseHash = null;
         students = [];
         
         // Réafficher l'écran d'authentification
         document.getElementById('authOverlay').style.display = 'flex';
         document.getElementById('appContainer').style.display = 'none';
         document.getElementById('logoutBtn').style.display = 'none';
+        document.getElementById('sessionTimer').style.display = 'none';
         document.getElementById('authCode').value = '';
         document.getElementById('authCode').focus();
         
@@ -299,43 +257,6 @@
         document.getElementById('studentsBody').innerHTML = '';
         document.getElementById('emptyState').style.display = 'block';
         updateStats();
-    }
-
-    // Nettoyage automatique à la fermeture de la page
-    function setupBeforeUnload() {
-        window.addEventListener('beforeunload', async function(event) {
-            // Nettoyer les données d'authentification
-            const challengeId = localStorage.getItem('challengeId');
-            const responseHash = localStorage.getItem('responseHash');
-            
-            if (challengeId || responseHash) {
-                // Utiliser sendBeacon pour un nettoyage asynchrone
-                const data = new FormData();
-                data.append('challengeId', challengeId || '');
-                data.append('responseHash', responseHash || '');
-                
-                // Note: Pour un vrai nettoyage, il faudrait une API backend
-                // Ici on nettoie en synchrone
-                try {
-                    const tempApp = initializeFirebase('cleanup_beforeunload_' + Date.now());
-                    const cleanupDb = tempApp.database();
-                    
-                    if (responseHash) {
-                        cleanupDb.ref(`valid_responses/${responseHash}`).remove().catch(() => {});
-                    }
-                    if (challengeId) {
-                        cleanupDb.ref(`challenges/${challengeId}`).remove().catch(() => {});
-                    }
-                    
-                    // Pas besoin d'attendre, on laisse Firebase faire le travail
-                    setTimeout(() => {
-                        cleanupFirebaseApp(tempApp);
-                    }, 100);
-                } catch (e) {
-                    // Ignorer les erreurs
-                }
-            }
-        });
     }
 
     // Fonctions utilitaires
@@ -355,9 +276,7 @@
         }
         
         const loadingElement = document.getElementById('loadingData');
-        if (loadingElement) {
-            loadingElement.style.display = 'block';
-        }
+        loadingElement.style.display = 'block';
         
         try {
             const studentsRef = database.ref('students');
@@ -383,9 +302,7 @@
                 showMessage('Erreur de chargement des données: ' + error.message, 'error');
             }
         } finally {
-            if (loadingElement) {
-                loadingElement.style.display = 'none';
-            }
+            loadingElement.style.display = 'none';
         }
     }
 
@@ -404,14 +321,14 @@
         const filteredStudents = filterStudents();
         
         if (filteredStudents.length === 0) {
-            if (tbody) tbody.innerHTML = '';
-            if (emptyState) emptyState.style.display = 'block';
+            tbody.innerHTML = '';
+            emptyState.style.display = 'block';
             updateStats();
             return;
         }
         
-        if (emptyState) emptyState.style.display = 'none';
-        if (tbody) tbody.innerHTML = '';
+        emptyState.style.display = 'none';
+        tbody.innerHTML = '';
         
         let totalAmount = 0;
         let totalSavings = 0;
@@ -449,20 +366,16 @@
                     </div>
                 </td>
             `;
-            if (tbody) tbody.appendChild(row);
+            tbody.appendChild(row);
         });
         
         updateStats(totalAmount, totalSavings);
     }
 
     function updateStats(totalAmount = 0, totalSavings = 0) {
-        const totalStudentsElem = document.getElementById('totalStudents');
-        const totalAmountElem = document.getElementById('totalAmount');
-        const totalSavingsElem = document.getElementById('totalSavings');
-        
-        if (totalStudentsElem) totalStudentsElem.textContent = students.length;
-        if (totalAmountElem) totalAmountElem.textContent = formatCurrency(totalAmount);
-        if (totalSavingsElem) totalSavingsElem.textContent = formatCurrency(totalSavings);
+        document.getElementById('totalStudents').textContent = students.length;
+        document.getElementById('totalAmount').textContent = formatCurrency(totalAmount);
+        document.getElementById('totalSavings').textContent = formatCurrency(totalSavings);
     }
 
     async function addOrUpdateStudent() {
@@ -543,8 +456,7 @@
         document.getElementById('addBtn').innerHTML = '<i class="fas fa-save"></i> Mettre à jour';
         
         if (window.innerWidth < 768) {
-            const formCard = document.querySelector('.form-card');
-            if (formCard) formCard.scrollIntoView({ behavior: 'smooth' });
+            document.querySelector('.form-card').scrollIntoView({ behavior: 'smooth' });
         }
     }
 
@@ -646,6 +558,41 @@
         }, 3000);
     }
 
+    // Gestion des événements
+    document.getElementById('authButton').addEventListener('click', async () => {
+        const code = document.getElementById('authCode').value;
+        const token = await authenticateWithCode(code);
+        if (token) {
+            startSession();
+        }
+    });
+
+    document.getElementById('authCode').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            document.getElementById('authButton').click();
+        }
+    });
+
+    document.getElementById('authCode').addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+        e.target.classList.remove('error');
+        document.getElementById('authError').textContent = '';
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+
+    document.getElementById('addBtn').addEventListener('click', addOrUpdateStudent);
+    document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
+    
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        currentSearch = e.target.value;
+        updateStudentList();
+    });
+
+    document.getElementById('class').addEventListener('input', (e) => {
+        e.target.value = e.target.value.toUpperCase().slice(0, 3);
+    });
+
     // Initialisation
     document.addEventListener('DOMContentLoaded', async () => {
         // Ajouter l'animation CSS pour les notifications
@@ -664,14 +611,8 @@
         `;
         document.head.appendChild(style);
         
-        // Setup nettoyage avant fermeture
-        setupBeforeUnload();
-        
         // Focus sur le champ de code
-        const authCodeInput = document.getElementById('authCode');
-        if (authCodeInput) {
-            authCodeInput.focus();
-        }
+        document.getElementById('authCode').focus();
         
         // Vérifier si une session existe déjà
         const hasValidSession = await checkExistingAuth();
@@ -679,65 +620,6 @@
             startSession();
         }
     });
-
-    // Gestion des événements
-    const authButton = document.getElementById('authButton');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const addBtn = document.getElementById('addBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const searchInput = document.getElementById('searchInput');
-    const classInput = document.getElementById('class');
-    const authCodeInput = document.getElementById('authCode');
-
-    if (authButton) {
-        authButton.addEventListener('click', async () => {
-            const code = authCodeInput ? authCodeInput.value : '';
-            const token = await authenticateWithCode(code);
-            if (token) {
-                startSession();
-            }
-        });
-    }
-
-    if (authCodeInput) {
-        authCodeInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                if (authButton) authButton.click();
-            }
-        });
-
-        authCodeInput.addEventListener('input', (e) => {
-            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
-            e.target.classList.remove('error');
-            const errorDiv = document.getElementById('authError');
-            if (errorDiv) errorDiv.textContent = '';
-        });
-    }
-
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', logout);
-    }
-
-    if (addBtn) {
-        addBtn.addEventListener('click', addOrUpdateStudent);
-    }
-
-    if (downloadBtn) {
-        downloadBtn.addEventListener('click', downloadCSV);
-    }
-    
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            currentSearch = e.target.value;
-            updateStudentList();
-        });
-    }
-
-    if (classInput) {
-        classInput.addEventListener('input', (e) => {
-            e.target.value = e.target.value.toUpperCase().slice(0, 3);
-        });
-    }
 
     // Empêcher le formulaire de se soumettre
     document.addEventListener('keydown', (e) => {
