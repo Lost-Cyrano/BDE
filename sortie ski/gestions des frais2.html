@@ -15,6 +15,7 @@
             --gray: #64748b;
             --gray-light: #e2e8f0;
             --success: #10b981;
+            --danger: #ef4444;
             --border: #e2e8f0;
         }
 
@@ -104,7 +105,7 @@
         }
 
         .auth-input.error {
-            border-color: #ef4444;
+            border-color: var(--danger);
             animation: shake 0.3s;
         }
 
@@ -136,10 +137,24 @@
         }
 
         .auth-error {
-            color: #ef4444;
+            color: var(--danger);
             font-size: 13px;
             margin-top: 10px;
             min-height: 18px;
+            padding: 8px;
+            background: #fee2e2;
+            border-radius: 6px;
+            border: 1px solid #fecaca;
+        }
+
+        .auth-info {
+            color: var(--gray);
+            font-size: 12px;
+            margin-top: 15px;
+            padding: 8px;
+            background: var(--light);
+            border-radius: 6px;
+            border: 1px solid var(--border);
         }
 
         /* Application principale */
@@ -303,6 +318,13 @@
             transform: translateY(-1px);
         }
 
+        .add-btn:disabled {
+            background: var(--gray-light);
+            color: var(--gray);
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -372,6 +394,13 @@
         .download-btn:hover {
             background: #0da271;
             transform: translateY(-1px);
+        }
+
+        .download-btn:disabled {
+            background: var(--gray-light);
+            color: var(--gray);
+            cursor: not-allowed;
+            transform: none;
         }
 
         .search-container {
@@ -526,6 +555,12 @@
             transform: translateY(-1px);
         }
 
+        .icon-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .empty-state {
             text-align: center;
             padding: 40px 15px;
@@ -630,6 +665,44 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .connection-status.connected {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .connection-status.disconnected {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 13px;
+            border: 1px solid #fecaca;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -646,14 +719,23 @@
                 <i class="fas fa-lock"></i> Accéder
             </button>
             <div class="auth-error" id="authError"></div>
+            <div class="auth-info" id="authInfo">
+                <i class="fas fa-info-circle"></i> Le code est vérifié auprès du serveur Firebase
+            </div>
         </div>
     </div>
 
     <!-- Application principale -->
     <div class="app-container" id="appContainer">
+        <div class="connection-status" id="connectionStatus">
+            <i class="fas fa-circle"></i> Déconnecté
+        </div>
+
         <div class="container">
             <div class="main-grid">
                 <div class="form-card">
+                    <div id="firebaseError" class="error-message"></div>
+                    
                     <div class="input-group">
                         <label class="input-label">Prénom</label>
                         <input type="text" id="firstName" class="input-field" placeholder="Marie">
@@ -706,7 +788,7 @@
                         </div>
                     </div>
 
-                    <button id="addBtn" class="add-btn">
+                    <button id="addBtn" class="add-btn" disabled>
                         <i class="fas fa-plus"></i> Ajouter élève
                     </button>
 
@@ -725,7 +807,7 @@
                         </div>
                     </div>
 
-                    <button id="downloadBtn" class="download-btn">
+                    <button id="downloadBtn" class="download-btn" disabled>
                         <i class="fas fa-file-csv"></i> Télécharger CSV
                     </button>
                 </div>
@@ -818,7 +900,8 @@
         let students = [];
         let editIndex = null;
         let currentSearch = '';
-        let authCode = '';
+        let isAuthenticated = false;
+        let currentStudentKey = null;
 
         // Fonctions utilitaires
         function formatCurrency(amount) {
@@ -829,35 +912,55 @@
             return savingsMap[total] || 0;
         }
 
-        // Test d'authentification avec le code
-        function testAuthCode(code) {
-            // Cette fonction teste si le code est correct en essayant de lire les données
-            return firebase.ref(database, '.info/connected').once('value')
-                .then(() => {
-                    // Si on arrive ici, la connexion est établie
-                    // On stocke le code pour les futures requêtes
-                    authCode = code;
-                    
-                    // Maintenant on teste si on peut lire les données
-                    return firebase.ref(database, 'students').once('value');
-                })
+        // Surveillance de la connexion
+        function setupConnectionMonitoring() {
+            const connectionStatus = document.getElementById('connectionStatus');
+            
+            firebase.ref(database, '.info/connected').on('value', (snapshot) => {
+                if (snapshot.val() === true) {
+                    connectionStatus.innerHTML = '<i class="fas fa-circle" style="color: #10b981;"></i> Connecté à Firebase';
+                    connectionStatus.className = 'connection-status connected';
+                } else {
+                    connectionStatus.innerHTML = '<i class="fas fa-circle" style="color: #ef4444;"></i> Déconnecté';
+                    connectionStatus.className = 'connection-status disconnected';
+                }
+            });
+        }
+
+        // Vérification de l'authentification
+        function verifyAuthCode(code) {
+            console.log('Vérification du code:', code);
+            document.getElementById('loadingData').style.display = 'block';
+            
+            // Tenter de lire les données avec le code fourni
+            return firebase.ref(database, 'students').once('value')
                 .then((snapshot) => {
-                    // Si on arrive ici, l'authentification a réussi
+                    console.log('Accès réussi aux données');
+                    isAuthenticated = true;
+                    document.getElementById('loadingData').style.display = 'none';
                     return true;
                 })
                 .catch((error) => {
+                    console.error('Erreur d\'authentification:', error);
+                    document.getElementById('loadingData').style.display = 'none';
+                    
+                    let errorMessage = 'Erreur inconnue';
                     if (error.code === 'PERMISSION_DENIED') {
-                        // Code incorrect
-                        authCode = '';
-                        return false;
+                        errorMessage = 'Code incorrect - Accès refusé par Firebase';
+                    } else if (error.message) {
+                        errorMessage = `Erreur Firebase: ${error.message}`;
+                    } else if (error.code) {
+                        errorMessage = `Erreur Firebase (code: ${error.code})`;
                     }
-                    throw error;
+                    
+                    throw new Error(errorMessage);
                 });
         }
 
         // Gestion des données Firebase
         function loadStudents() {
-            if (!authCode) {
+            if (!isAuthenticated) {
+                showError('Non authentifié. Veuillez vous reconnecter.');
                 return Promise.reject(new Error('Non authentifié'));
             }
             
@@ -868,7 +971,6 @@
                     const data = snapshot.val();
                     students = [];
                     
-                    // Extraire les données et garder les clés pour les mises à jour
                     if (data) {
                         Object.keys(data).forEach(key => {
                             const student = data[key];
@@ -878,22 +980,29 @@
                     }
                     
                     document.getElementById('loadingData').style.display = 'none';
+                    updateUIState();
                     updateStudentList();
                     return students;
                 })
                 .catch((error) => {
                     console.error('Erreur de chargement:', error);
                     document.getElementById('loadingData').style.display = 'none';
+                    
+                    let errorMessage = 'Erreur de chargement';
                     if (error.code === 'PERMISSION_DENIED') {
-                        throw new Error('Code incorrect ou accès refusé');
+                        errorMessage = 'Accès refusé - Le code a peut-être expiré';
+                        isAuthenticated = false;
+                        showAuthScreen();
                     }
-                    alert('Erreur de chargement des données');
+                    
+                    showError(errorMessage);
                     return [];
                 });
         }
 
         function saveStudentToFirebase(student) {
-            if (!authCode) {
+            if (!isAuthenticated) {
+                showError('Non authentifié');
                 return Promise.reject(new Error('Non authentifié'));
             }
             
@@ -909,11 +1018,17 @@
             })
             .then(() => {
                 return loadStudents();
+            })
+            .catch((error) => {
+                console.error('Erreur de sauvegarde:', error);
+                showError(`Erreur de sauvegarde: ${error.message || error.code}`);
+                throw error;
             });
         }
 
         function updateStudentInFirebase(studentKey, student) {
-            if (!authCode) {
+            if (!isAuthenticated) {
+                showError('Non authentifié');
                 return Promise.reject(new Error('Non authentifié'));
             }
             
@@ -931,21 +1046,53 @@
                 firebase.ref(database, `students/${studentKey}`),
                 studentData
             )
-            .then(() => loadStudents());
+            .then(() => loadStudents())
+            .catch((error) => {
+                console.error('Erreur de mise à jour:', error);
+                showError(`Erreur de mise à jour: ${error.message || error.code}`);
+                throw error;
+            });
         }
 
         function deleteStudentFromFirebase(studentKey) {
-            if (!authCode) {
+            if (!isAuthenticated) {
+                showError('Non authentifié');
                 return Promise.reject(new Error('Non authentifié'));
             }
             
             return firebase.remove(
                 firebase.ref(database, `students/${studentKey}`)
             )
-            .then(() => loadStudents());
+            .then(() => loadStudents())
+            .catch((error) => {
+                console.error('Erreur de suppression:', error);
+                showError(`Erreur de suppression: ${error.message || error.code}`);
+                throw error;
+            });
         }
 
         // Interface utilisateur
+        function updateUIState() {
+            const isConnected = isAuthenticated;
+            document.getElementById('addBtn').disabled = !isConnected;
+            document.getElementById('downloadBtn').disabled = !isConnected;
+            
+            if (isConnected) {
+                document.getElementById('firebaseError').style.display = 'none';
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('firebaseError');
+            errorDiv.textContent = `Erreur: ${message}`;
+            errorDiv.style.display = 'block';
+            
+            // Cacher après 5 secondes
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
         function filterStudents() {
             const searchTerm = currentSearch.toLowerCase();
             return students.filter(student => 
@@ -997,10 +1144,10 @@
                     <td class="real-total">${formatCurrency(realTotal)}</td>
                     <td>
                         <div class="action-buttons">
-                            <button class="icon-btn" onclick="editStudent('${student.key}')" title="Modifier">
+                            <button class="icon-btn" onclick="editStudent('${student.key}')" title="Modifier" ${!isAuthenticated ? 'disabled' : ''}>
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="icon-btn" onclick="deleteStudent('${student.key}')" title="Supprimer">
+                            <button class="icon-btn" onclick="deleteStudent('${student.key}')" title="Supprimer" ${!isAuthenticated ? 'disabled' : ''}>
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -1019,6 +1166,11 @@
         }
 
         function addOrUpdateStudent() {
+            if (!isAuthenticated) {
+                showError('Veuillez vous authentifier d\'abord');
+                return;
+            }
+            
             const firstName = document.getElementById('firstName').value.trim();
             const lastName = document.getElementById('lastName').value.trim();
             const studentClass = document.getElementById('class').value.trim().toUpperCase();
@@ -1045,16 +1197,15 @@
                 keycard
             };
             
-            if (editIndex !== null) {
-                updateStudentInFirebase(editIndex, student)
+            if (currentStudentKey !== null) {
+                updateStudentInFirebase(currentStudentKey, student)
                     .then(() => {
-                        editIndex = null;
+                        currentStudentKey = null;
                         document.getElementById('addBtn').innerHTML = '<i class="fas fa-plus"></i> Ajouter élève';
                         resetForm();
                     })
                     .catch(error => {
-                        console.error('Erreur de mise à jour:', error);
-                        alert('Erreur lors de la mise à jour: ' + error.message);
+                        console.error('Erreur:', error);
                     });
             } else {
                 saveStudentToFirebase(student)
@@ -1062,13 +1213,17 @@
                         resetForm();
                     })
                     .catch(error => {
-                        console.error('Erreur d\'ajout:', error);
-                        alert('Erreur lors de l\'ajout: ' + error.message);
+                        console.error('Erreur:', error);
                     });
             }
         }
 
         function editStudent(studentKey) {
+            if (!isAuthenticated) {
+                showError('Non authentifié');
+                return;
+            }
+            
             const student = students.find(s => s.key === studentKey);
             if (student) {
                 document.getElementById('firstName').value = student.firstName;
@@ -1078,17 +1233,21 @@
                 document.getElementById('locationDays').value = student.locationDays;
                 document.getElementById('keycard').value = student.keycard;
                 
-                editIndex = studentKey;
+                currentStudentKey = studentKey;
                 document.getElementById('addBtn').innerHTML = '<i class="fas fa-save"></i> Mettre à jour';
             }
         }
 
         function deleteStudent(studentKey) {
+            if (!isAuthenticated) {
+                showError('Non authentifié');
+                return;
+            }
+            
             if (confirm('Supprimer cet élève ?')) {
                 deleteStudentFromFirebase(studentKey)
                     .catch(error => {
-                        console.error('Erreur de suppression:', error);
-                        alert('Erreur lors de la suppression: ' + error.message);
+                        console.error('Erreur:', error);
                     });
             }
         }
@@ -1100,9 +1259,16 @@
             document.getElementById('forfaitDays').value = '0';
             document.getElementById('locationDays').value = '0';
             document.getElementById('keycard').value = '0';
+            currentStudentKey = null;
+            document.getElementById('addBtn').innerHTML = '<i class="fas fa-plus"></i> Ajouter élève';
         }
 
         function downloadCSV() {
+            if (!isAuthenticated) {
+                showError('Non authentifié');
+                return;
+            }
+            
             if (students.length === 0) {
                 alert('Aucun élève à exporter');
                 return;
@@ -1133,6 +1299,19 @@
         }
 
         // Gestion de l'authentification
+        function showAuthScreen() {
+            isAuthenticated = false;
+            students = [];
+            updateUIState();
+            updateStudentList();
+            
+            document.getElementById('authOverlay').style.display = 'flex';
+            document.getElementById('appContainer').style.display = 'none';
+            document.getElementById('authCode').value = '';
+            document.getElementById('authError').textContent = '';
+            document.getElementById('authCode').focus();
+        }
+
         function handleAuth() {
             const codeInput = document.getElementById('authCode');
             const errorDiv = document.getElementById('authError');
@@ -1146,9 +1325,7 @@
             }
             
             // Tester le code d'authentification
-            document.getElementById('loadingData').style.display = 'block';
-            
-            testAuthCode(code)
+            verifyAuthCode(code)
                 .then((isValid) => {
                     if (isValid) {
                         // Authentification réussie
@@ -1161,9 +1338,6 @@
                         
                         // Charger les données
                         return loadStudents();
-                    } else {
-                        // Code incorrect
-                        throw new Error('Code incorrect');
                     }
                 })
                 .catch((error) => {
@@ -1172,8 +1346,17 @@
                     errorDiv.textContent = error.message || 'Code incorrect';
                     codeInput.value = '';
                     codeInput.focus();
-                    document.getElementById('loadingData').style.display = 'none';
+                    console.error('Erreur d\'authentification détaillée:', error);
                 });
+        }
+
+        // Initialisation
+        function initApp() {
+            // Configuration du monitoring de connexion
+            setupConnectionMonitoring();
+            
+            // Afficher l'écran d'authentification au démarrage
+            showAuthScreen();
         }
 
         // Événements
@@ -1200,10 +1383,8 @@
             document.getElementById('authError').textContent = '';
         });
 
-        // Focus sur le champ de code au chargement
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('authCode').focus();
-        });
+        // Initialiser l'application
+        document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
