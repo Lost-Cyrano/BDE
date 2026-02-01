@@ -829,64 +829,101 @@
             return savingsMap[total] || 0;
         }
 
-        // Gestion des données Firebase avec authentification par code
+        // Test d'authentification avec le code
+        function testAuthCode(code) {
+            // Cette fonction teste si le code est correct en essayant de lire les données
+            return firebase.ref(database, '.info/connected').once('value')
+                .then(() => {
+                    // Si on arrive ici, la connexion est établie
+                    // On stocke le code pour les futures requêtes
+                    authCode = code;
+                    
+                    // Maintenant on teste si on peut lire les données
+                    return firebase.ref(database, 'students').once('value');
+                })
+                .then((snapshot) => {
+                    // Si on arrive ici, l'authentification a réussi
+                    return true;
+                })
+                .catch((error) => {
+                    if (error.code === 'PERMISSION_DENIED') {
+                        // Code incorrect
+                        authCode = '';
+                        return false;
+                    }
+                    throw error;
+                });
+        }
+
+        // Gestion des données Firebase
         function loadStudents() {
+            if (!authCode) {
+                return Promise.reject(new Error('Non authentifié'));
+            }
+            
             document.getElementById('loadingData').style.display = 'block';
             
-            // Utilisation de query avec le code d'authentification
-            return firebase.query(
-                firebase.ref(database, 'students'),
-                'code',
-                'equalTo',
-                authCode
-            ).once('value')
-            .then((snapshot) => {
-                const data = snapshot.val();
-                students = data ? Object.values(data) : [];
-                
-                // Extraire les données et garder les clés pour les mises à jour
-                const studentEntries = [];
-                snapshot.forEach((childSnapshot) => {
-                    const student = childSnapshot.val();
-                    student.key = childSnapshot.key;
-                    studentEntries.push(student);
+            return firebase.ref(database, 'students').once('value')
+                .then((snapshot) => {
+                    const data = snapshot.val();
+                    students = [];
+                    
+                    // Extraire les données et garder les clés pour les mises à jour
+                    if (data) {
+                        Object.keys(data).forEach(key => {
+                            const student = data[key];
+                            student.key = key;
+                            students.push(student);
+                        });
+                    }
+                    
+                    document.getElementById('loadingData').style.display = 'none';
+                    updateStudentList();
+                    return students;
+                })
+                .catch((error) => {
+                    console.error('Erreur de chargement:', error);
+                    document.getElementById('loadingData').style.display = 'none';
+                    if (error.code === 'PERMISSION_DENIED') {
+                        throw new Error('Code incorrect ou accès refusé');
+                    }
+                    alert('Erreur de chargement des données');
+                    return [];
                 });
-                students = studentEntries;
-                
-                document.getElementById('loadingData').style.display = 'none';
-                updateStudentList();
-                return students;
-            })
-            .catch((error) => {
-                console.error('Erreur de chargement:', error);
-                document.getElementById('loadingData').style.display = 'none';
-                if (error.code === 'PERMISSION_DENIED') {
-                    throw new Error('Code incorrect');
-                }
-                alert('Erreur de chargement des données');
-                return [];
-            });
         }
 
         function saveStudentToFirebase(student) {
-            // Ajouter le code d'authentification aux données
-            const studentData = {
-                ...student,
-                timestamp: Date.now()
-            };
+            if (!authCode) {
+                return Promise.reject(new Error('Non authentifié'));
+            }
             
-            return firebase.set(
-                firebase.ref(database, `students/${Date.now()}`),
-                studentData
-            )
+            const newStudentRef = firebase.ref(database, 'students').push();
+            return firebase.set(newStudentRef, {
+                firstName: student.firstName,
+                lastName: student.lastName,
+                class: student.class,
+                forfaitDays: student.forfaitDays,
+                locationDays: student.locationDays,
+                keycard: student.keycard,
+                timestamp: Date.now()
+            })
             .then(() => {
                 return loadStudents();
             });
         }
 
         function updateStudentInFirebase(studentKey, student) {
+            if (!authCode) {
+                return Promise.reject(new Error('Non authentifié'));
+            }
+            
             const studentData = {
-                ...student,
+                firstName: student.firstName,
+                lastName: student.lastName,
+                class: student.class,
+                forfaitDays: student.forfaitDays,
+                locationDays: student.locationDays,
+                keycard: student.keycard,
                 updatedAt: Date.now()
             };
             
@@ -898,6 +935,10 @@
         }
 
         function deleteStudentFromFirebase(studentKey) {
+            if (!authCode) {
+                return Promise.reject(new Error('Non authentifié'));
+            }
+            
             return firebase.remove(
                 firebase.ref(database, `students/${studentKey}`)
             )
@@ -1013,7 +1054,7 @@
                     })
                     .catch(error => {
                         console.error('Erreur de mise à jour:', error);
-                        alert('Erreur lors de la mise à jour');
+                        alert('Erreur lors de la mise à jour: ' + error.message);
                     });
             } else {
                 saveStudentToFirebase(student)
@@ -1022,7 +1063,7 @@
                     })
                     .catch(error => {
                         console.error('Erreur d\'ajout:', error);
-                        alert('Erreur lors de l\'ajout');
+                        alert('Erreur lors de l\'ajout: ' + error.message);
                     });
             }
         }
@@ -1047,7 +1088,7 @@
                 deleteStudentFromFirebase(studentKey)
                     .catch(error => {
                         console.error('Erreur de suppression:', error);
-                        alert('Erreur lors de la suppression');
+                        alert('Erreur lors de la suppression: ' + error.message);
                     });
             }
         }
@@ -1104,24 +1145,29 @@
                 return;
             }
             
-            // Définir le code d'authentification
-            authCode = code;
-            
-            // Essayer de charger les données (cela vérifiera le code)
+            // Tester le code d'authentification
             document.getElementById('loadingData').style.display = 'block';
             
-            loadStudents()
-                .then(() => {
-                    // Authentification réussie
-                    codeInput.classList.remove('error');
-                    errorDiv.textContent = '';
-                    
-                    // Masquer l'écran d'authentification
-                    document.getElementById('authOverlay').style.display = 'none';
-                    document.getElementById('appContainer').style.display = 'block';
+            testAuthCode(code)
+                .then((isValid) => {
+                    if (isValid) {
+                        // Authentification réussie
+                        codeInput.classList.remove('error');
+                        errorDiv.textContent = '';
+                        
+                        // Masquer l'écran d'authentification
+                        document.getElementById('authOverlay').style.display = 'none';
+                        document.getElementById('appContainer').style.display = 'block';
+                        
+                        // Charger les données
+                        return loadStudents();
+                    } else {
+                        // Code incorrect
+                        throw new Error('Code incorrect');
+                    }
                 })
                 .catch((error) => {
-                    // Code incorrect
+                    // Code incorrect ou autre erreur
                     codeInput.classList.add('error');
                     errorDiv.textContent = error.message || 'Code incorrect';
                     codeInput.value = '';
