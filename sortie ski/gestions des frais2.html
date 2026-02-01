@@ -812,10 +812,19 @@
     
     <script>
         // Configuration Firebase
-        const firebaseConfig = {
-            databaseURL: "https://bde-ski-default-rtdb.europe-west1.firebasedatabase.app/"
-        };
+const firebaseConfig = {
+    databaseURL: "https://bde-ski-default-rtdb.europe-west1.firebasedatabase.app/"
+};
 
+// Initialiser Firebase immédiatement
+let firebaseApp;
+try {
+    // Essayer d'utiliser une instance existante
+    firebaseApp = firebase.app();
+} catch (e) {
+    // Sinon créer une nouvelle instance
+    firebaseApp = firebase.initializeApp(firebaseConfig);
+}
         // Variables globales
         const savingsMap = {
             17.5: 5.55,
@@ -867,9 +876,15 @@
                 authButton.innerHTML = '<i class="fas fa-spinner"></i> Vérification...';
                 
                 // Initialiser Firebase sans authentification
-                if (app) {
-                    try { app.delete(); } catch(e) {}
-                }
+// Utiliser une instance temporaire
+const tempAppName = 'temp_auth_' + Date.now();
+let tempApp;
+try {
+    tempApp = firebase.initializeApp(firebaseConfig, tempAppName);
+} catch (e) {
+    tempApp = firebase.app(tempAppName);
+}
+database = tempApp.database();
                 
                 // Utiliser une instance temporaire
                 app = firebase.initializeApp(firebaseConfig, 'temp_auth_' + Date.now());
@@ -917,11 +932,17 @@
                 });
                 
                 // 7. Nettoyer l'instance temporaire
-                try { app.delete(); } catch(e) {}
-                
-                // 8. Créer une nouvelle instance avec l'auth token
-                app = firebase.initializeApp(firebaseConfig, 'authenticated_app_' + Date.now());
-                database = firebase.database();
+try { tempApp.delete(); } catch(e) {}
+
+// 8. Créer une nouvelle instance avec l'auth token
+const authAppName = 'authenticated_app_' + Date.now();
+let authApp;
+try {
+    authApp = firebase.initializeApp(firebaseConfig, authAppName);
+} catch (e) {
+    authApp = firebase.app(authAppName);
+}
+database = authApp.database();
                 
                 // Stocker le token
                 authToken = responseHash;
@@ -988,17 +1009,17 @@
                 localStorage.removeItem('authTimestamp');
                 return false;
             }
-            
             try {
-                // Nettoyer toute instance existante
-                if (app) {
-                    try { app.delete(); } catch(e) {}
-                }
-                
-                // Initialiser avec le token sauvegardé
-                app = firebase.initializeApp(firebaseConfig, 'existing_session_' + Date.now());
-                database = firebase.database();
-                authToken = savedToken;
+    // Initialiser avec le token sauvegardé
+    const existingAppName = 'existing_session_' + Date.now();
+    let existingApp;
+    try {
+        existingApp = firebase.initializeApp(firebaseConfig, existingAppName);
+    } catch (e) {
+        existingApp = firebase.app(existingAppName);
+    }
+    database = existingApp.database();
+    authToken = savedToken;
                 
                 // Tester la connexion
                 const testRef = database.ref('students');
@@ -1070,15 +1091,9 @@
             localStorage.removeItem('authToken');
             localStorage.removeItem('authTimestamp');
             
-            if (app) {
-                try {
-                    app.delete();
-                } catch (e) {
-                    console.log('Erreur lors de la suppression de l\'app:', e);
-                }
-                app = null;
-                database = null;
-            }
+            database = null;
+authToken = null;
+students = [];
             
             authToken = null;
             students = [];
