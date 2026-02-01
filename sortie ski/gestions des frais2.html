@@ -773,29 +773,18 @@
         }
 
         // Fonction pour authentifier avec un code
-        function authenticateWithCode(code) {
-            currentAuthCode = code;
-            
-            // D'abord, essayer de lire une donnée de test
-            return firebase.ref(database, 'test_auth').once('value')
-                .then((snapshot) => {
-                    // Si on arrive ici, c'est que la lecture a réussi
-                    // Maintenant essayer de lire les étudiants
-                    return firebase.ref(database, 'students').once('value')
-                        .then((studentsSnapshot) => {
-                            return { success: true, studentsData: studentsSnapshot.val() };
-                        })
-                        .catch((error) => {
-                            // Si on ne peut pas lire les étudiants, c'est que le code est invalide
-                            throw new Error('Code invalide ou pas d\'accès');
-                        });
-                })
-                .catch((error) => {
-                    // Si même la lecture de test échoue, c'est que le code est invalide
-                    throw new Error('Code invalide');
-                });
-        }
-
+       function authenticateWithCode(code) {
+    // Tente de lire le nœud racine avec le code comme paramètre d'authentification
+    return firebase.ref(database, '/').get()
+        .then(() => {
+            // Si on arrive ici, l'authentification a réussi
+            return true;
+        })
+        .catch(error => {
+            // Échec d'authentification
+            throw new Error('Code invalide');
+        });
+}
         // Fonction pour créer une référence avec authentification
         function getRef(path) {
             return firebase.ref(database, path);
