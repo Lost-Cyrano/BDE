@@ -630,19 +630,3 @@ function showMessage(message, type) {
         }, 300);
     }, 3000);
 }
-
-// Export des fonctions pour le HTML
-window.authenticateWithCode = authenticateWithCode;
-window.checkExistingAuth = checkExistingAuth;
-window.startSession = startSession;
-window.logout = logout;
-window.loadStudents = loadStudents;
-window.updateStudentList = updateStudentList;
-window.addOrUpdateStudent = addOrUpdateStudent;
-window.editStudent = editStudent;
-window.deleteStudent = deleteStudent;
-window.resetForm = resetForm;
-window.downloadCSV = downloadCSV;
-window.showMessage = showMessage;
-window.formatCurrency = formatCurrency;
-window.calculateSavings = calculateSavings;
