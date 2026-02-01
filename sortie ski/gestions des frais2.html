@@ -777,8 +777,8 @@
         const app = firebase.initializeApp(firebaseConfig);
         const database = firebase.database(app);
 
-        // Code d'accès - À CHANGER !
-        const SECRET_CODE = "1234"; // Changez ce code pour votre code secret réel
+        // Code d'accès - CHANGEZ CE CODE !
+        const SECRET_CODE = "1234";
 
         const savingsMap = {
             17.5: 5.55,
@@ -805,35 +805,8 @@
             return savingsMap[total] || 0;
         }
 
-        // Fonction pour authentifier avec Firebase
-        function authenticateWithFirebase(code) {
-            // Créer un token d'authentification personnalisé
-            return firebase.auth().signInWithCustomToken(code)
-                .catch(() => {
-                    // Si Firebase Auth n'est pas configuré, on utilise une méthode simple
-                    return new Promise((resolve) => {
-                        // Pour Firebase Realtime Database avec règles personnalisées
-                        // On essaie de se connecter en utilisant le code comme token
-                        database.ref('.info/connected').once('value')
-                            .then(() => {
-                                isAuthenticated = true;
-                                resolve(true);
-                            })
-                            .catch(() => {
-                                isAuthenticated = false;
-                                resolve(false);
-                            });
-                    });
-                });
-        }
-
-        // Gestion des données Firebase avec authentification
+        // Gestion des données Firebase - SIMPLIFIÉE
         function loadStudents() {
-            if (!isAuthenticated) {
-                alert('Non authentifié');
-                return Promise.reject('Non authentifié');
-            }
-            
             document.getElementById('loadingData').style.display = 'block';
             
             const studentsRef = database.ref('students');
@@ -859,14 +832,12 @@
                     console.error('Erreur de chargement:', error);
                     document.getElementById('loadingData').style.display = 'none';
                     
+                    // Si erreur de permission, vérifier l'authentification
                     if (error.code === 'PERMISSION_DENIED') {
-                        alert('Accès refusé. Vérifiez votre code d\'accès.');
-                        // Revenir à l'écran d'authentification
-                        document.getElementById('authOverlay').style.display = 'flex';
-                        document.getElementById('appContainer').style.display = 'none';
-                        isAuthenticated = false;
+                        alert('Accès refusé. Le code est incorrect ou les règles Firebase sont mal configurées.');
+                        showAuthScreen();
                     } else {
-                        alert('Erreur de chargement des données');
+                        alert('Erreur de chargement des données: ' + error.message);
                     }
                     
                     students = [];
@@ -875,11 +846,6 @@
         }
 
         function saveStudentToFirebase(student) {
-            if (!isAuthenticated) {
-                alert('Non authentifié');
-                return Promise.reject('Non authentifié');
-            }
-            
             const studentsRef = database.ref('students');
             const newStudentRef = studentsRef.push();
             
@@ -898,21 +864,14 @@
             .catch((error) => {
                 console.error('Erreur d\'ajout:', error);
                 if (error.code === 'PERMISSION_DENIED') {
-                    alert('Accès refusé. Vérifiez votre code d\'accès.');
-                    document.getElementById('authOverlay').style.display = 'flex';
-                    document.getElementById('appContainer').style.display = 'none';
-                    isAuthenticated = false;
+                    alert('Accès refusé. Votre session a expiré.');
+                    showAuthScreen();
                 }
                 throw error;
             });
         }
 
         function updateStudentInFirebase(studentId, student) {
-            if (!isAuthenticated) {
-                alert('Non authentifié');
-                return Promise.reject('Non authentifié');
-            }
-            
             const studentRef = database.ref(`students/${studentId}`);
             
             return studentRef.update({
@@ -928,21 +887,14 @@
             .catch((error) => {
                 console.error('Erreur de mise à jour:', error);
                 if (error.code === 'PERMISSION_DENIED') {
-                    alert('Accès refusé. Vérifiez votre code d\'accès.');
-                    document.getElementById('authOverlay').style.display = 'flex';
-                    document.getElementById('appContainer').style.display = 'none';
-                    isAuthenticated = false;
+                    alert('Accès refusé. Votre session a expiré.');
+                    showAuthScreen();
                 }
                 throw error;
             });
         }
 
         function deleteStudentFromFirebase(studentId) {
-            if (!isAuthenticated) {
-                alert('Non authentifié');
-                return Promise.reject('Non authentifié');
-            }
-            
             const studentRef = database.ref(`students/${studentId}`);
             
             return studentRef.remove()
@@ -950,10 +902,8 @@
                 .catch((error) => {
                     console.error('Erreur de suppression:', error);
                     if (error.code === 'PERMISSION_DENIED') {
-                        alert('Accès refusé. Vérifiez votre code d\'accès.');
-                        document.getElementById('authOverlay').style.display = 'flex';
-                        document.getElementById('appContainer').style.display = 'none';
-                        isAuthenticated = false;
+                        alert('Accès refusé. Votre session a expiré.');
+                        showAuthScreen();
                     }
                     throw error;
                 });
@@ -1033,11 +983,6 @@
         }
 
         function addOrUpdateStudent() {
-            if (!isAuthenticated) {
-                alert('Vous devez être authentifié');
-                return;
-            }
-            
             const firstName = document.getElementById('firstName').value.trim();
             const lastName = document.getElementById('lastName').value.trim();
             const studentClass = document.getElementById('class').value.trim().toUpperCase();
@@ -1072,7 +1017,7 @@
                         resetForm();
                     })
                     .catch(error => {
-                        if (error !== 'Non authentifié') {
+                        if (error.code !== 'PERMISSION_DENIED') {
                             alert('Erreur lors de la mise à jour');
                         }
                     });
@@ -1082,7 +1027,7 @@
                         resetForm();
                     })
                     .catch(error => {
-                        if (error !== 'Non authentifié') {
+                        if (error.code !== 'PERMISSION_DENIED') {
                             alert('Erreur lors de l\'ajout');
                         }
                     });
@@ -1105,15 +1050,10 @@
         }
 
         function deleteStudent(studentId) {
-            if (!isAuthenticated) {
-                alert('Vous devez être authentifié');
-                return;
-            }
-            
             if (confirm('Supprimer cet élève ?')) {
                 deleteStudentFromFirebase(studentId)
                     .catch(error => {
-                        if (error !== 'Non authentifié') {
+                        if (error.code !== 'PERMISSION_DENIED') {
                             alert('Erreur lors de la suppression');
                         }
                     });
@@ -1159,7 +1099,16 @@
             link.click();
         }
 
-        // Gestion de l'authentification
+        // Fonction pour montrer l'écran d'authentification
+        function showAuthScreen() {
+            document.getElementById('authOverlay').style.display = 'flex';
+            document.getElementById('appContainer').style.display = 'none';
+            isAuthenticated = false;
+            document.getElementById('authCode').value = '';
+            document.getElementById('authCode').focus();
+        }
+
+        // Gestion de l'authentification SIMPLIFIÉE et FONCTIONNELLE
         function handleAuth() {
             const codeInput = document.getElementById('authCode');
             const errorDiv = document.getElementById('authError');
@@ -1171,31 +1120,25 @@
                 return;
             }
             
-            // Essayer d'authentifier avec Firebase
-            authenticateWithFirebase(code)
-                .then((success) => {
-                    if (success || code === SECRET_CODE) {
-                        codeInput.classList.remove('error');
-                        errorDiv.textContent = '';
-                        isAuthenticated = true;
-                        
-                        document.getElementById('authOverlay').style.display = 'none';
-                        document.getElementById('appContainer').style.display = 'flex';
-                        
-                        loadStudents();
-                    } else {
-                        codeInput.classList.add('error');
-                        errorDiv.textContent = 'Code incorrect';
-                        codeInput.value = '';
-                        codeInput.focus();
-                    }
-                })
-                .catch(() => {
-                    codeInput.classList.add('error');
-                    errorDiv.textContent = 'Code incorrect';
-                    codeInput.value = '';
-                    codeInput.focus();
-                });
+            // SIMPLE vérification du code
+            if (code === SECRET_CODE) {
+                codeInput.classList.remove('error');
+                errorDiv.textContent = '';
+                isAuthenticated = true;
+                
+                // CACHER l'écran d'authentification
+                document.getElementById('authOverlay').style.display = 'none';
+                // MONTRER l'application
+                document.getElementById('appContainer').style.display = 'flex';
+                
+                // Charger les données
+                loadStudents();
+            } else {
+                codeInput.classList.add('error');
+                errorDiv.textContent = 'Code incorrect';
+                codeInput.value = '';
+                codeInput.focus();
+            }
         }
 
         // Événements
