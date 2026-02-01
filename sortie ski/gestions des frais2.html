@@ -876,515 +876,477 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
     
     <script>
-        // Configuration Firebase
-        const firebaseConfig = {
-            databaseURL: "https://bde-ski-default-rtdb.europe-west1.firebasedatabase.app/"
-        };
+    // Configuration Firebase
+    const firebaseConfig = {
+        databaseURL: "https://bde-ski-default-rtdb.europe-west1.firebasedatabase.app/"
+    };
 
-        // Initialisation Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const database = firebase.getDatabase(app);
+    // Initialisation Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const database = firebase.getDatabase(app);
 
-        // Données et configuration
-        const savingsMap = {
-            17.5: 5.55,
-            10: 3.1,
-            29.5: 9.47,
-            35: 11.1,
-            20: 6.2,
-            57: 18.62,
-            19.5: 6.37,
-            37: 11.92
-        };
+    // Données et configuration
+    const savingsMap = {
+        17.5: 5.55,
+        10: 3.1,
+        29.5: 9.47,
+        35: 11.1,
+        20: 6.2,
+        57: 18.62,
+        19.5: 6.37,
+        37: 11.92
+    };
 
-        let students = [];
-        let editIndex = null;
-        let currentSearch = '';
-        let isAuthenticated = false;
-        let currentStudentKey = null;
+    let students = [];
+    let editIndex = null;
+    let currentSearch = '';
+    let isAuthenticated = false;
+    let currentStudentKey = null;
 
-        // Fonctions utilitaires
-        function formatCurrency(amount) {
-            return amount.toFixed(2) + '€';
+    // Fonctions utilitaires
+    function formatCurrency(amount) {
+        return amount.toFixed(2) + '€';
+    }
+
+    function calculateSavings(total) {
+        return savingsMap[total] || 0;
+    }
+
+    // Test simple de connexion à Firebase (pas d'authentification pour l'instant)
+    function testFirebaseConnection() {
+        console.log('Test de connexion à Firebase...');
+        document.getElementById('loadingData').style.display = 'block';
+        
+        // Tenter simplement de lire le nœud racine
+        return firebase.ref(database, '.info/connected').once('value')
+            .then((snapshot) => {
+                console.log('Connexion Firebase établie');
+                isAuthenticated = true; // Pour le test, on accepte tout
+                document.getElementById('loadingData').style.display = 'none';
+                return true;
+            })
+            .catch((error) => {
+                console.error('Erreur de connexion Firebase:', error);
+                document.getElementById('loadingData').style.display = 'none';
+                throw new Error('Impossible de se connecter à Firebase: ' + (error.message || error.code));
+            });
+    }
+
+    // Gestion des données Firebase
+    function loadStudents() {
+        if (!isAuthenticated) {
+            console.error('Non authentifié');
+            return Promise.reject(new Error('Non authentifié'));
         }
-
-        function calculateSavings(total) {
-            return savingsMap[total] || 0;
-        }
-
-        // Surveillance de la connexion
-        function setupConnectionMonitoring() {
-            const connectionStatus = document.getElementById('connectionStatus');
-            
-            firebase.ref(database, '.info/connected').on('value', (snapshot) => {
-                if (snapshot.val() === true) {
-                    connectionStatus.innerHTML = '<i class="fas fa-circle" style="color: #10b981;"></i> Connecté à Firebase';
-                    connectionStatus.className = 'connection-status connected';
+        
+        console.log('Chargement des élèves...');
+        document.getElementById('loadingData').style.display = 'block';
+        
+        return firebase.ref(database, 'students').once('value')
+            .then((snapshot) => {
+                const data = snapshot.val();
+                students = [];
+                
+                if (data) {
+                    Object.keys(data).forEach(key => {
+                        const student = data[key];
+                        student.key = key;
+                        students.push(student);
+                    });
+                    console.log(`${students.length} élèves chargés`);
                 } else {
-                    connectionStatus.innerHTML = '<i class="fas fa-circle" style="color: #ef4444;"></i> Déconnecté';
-                    connectionStatus.className = 'connection-status disconnected';
+                    console.log('Aucun élève trouvé dans la base');
                 }
-            });
-        }
-
-        // Vérification de l'authentification
-        function verifyAuthCode(code) {
-            console.log('Vérification du code:', code);
-            document.getElementById('loadingData').style.display = 'block';
-            
-            // Tenter de lire les données avec le code fourni
-            return firebase.ref(database, 'students').once('value')
-                .then((snapshot) => {
-                    console.log('Accès réussi aux données');
-                    isAuthenticated = true;
-                    document.getElementById('loadingData').style.display = 'none';
-                    return true;
-                })
-                .catch((error) => {
-                    console.error('Erreur d\'authentification:', error);
-                    document.getElementById('loadingData').style.display = 'none';
-                    
-                    let errorMessage = 'Erreur inconnue';
-                    if (error.code === 'PERMISSION_DENIED') {
-                        errorMessage = 'Code incorrect - Accès refusé par Firebase';
-                    } else if (error.message) {
-                        errorMessage = `Erreur Firebase: ${error.message}`;
-                    } else if (error.code) {
-                        errorMessage = `Erreur Firebase (code: ${error.code})`;
-                    }
-                    
-                    throw new Error(errorMessage);
-                });
-        }
-
-        // Gestion des données Firebase
-        function loadStudents() {
-            if (!isAuthenticated) {
-                showError('Non authentifié. Veuillez vous reconnecter.');
-                return Promise.reject(new Error('Non authentifié'));
-            }
-            
-            document.getElementById('loadingData').style.display = 'block';
-            
-            return firebase.ref(database, 'students').once('value')
-                .then((snapshot) => {
-                    const data = snapshot.val();
-                    students = [];
-                    
-                    if (data) {
-                        Object.keys(data).forEach(key => {
-                            const student = data[key];
-                            student.key = key;
-                            students.push(student);
-                        });
-                    }
-                    
-                    document.getElementById('loadingData').style.display = 'none';
-                    updateUIState();
-                    updateStudentList();
-                    return students;
-                })
-                .catch((error) => {
-                    console.error('Erreur de chargement:', error);
-                    document.getElementById('loadingData').style.display = 'none';
-                    
-                    let errorMessage = 'Erreur de chargement';
-                    if (error.code === 'PERMISSION_DENIED') {
-                        errorMessage = 'Accès refusé - Le code a peut-être expiré';
-                        isAuthenticated = false;
-                        showAuthScreen();
-                    }
-                    
-                    showError(errorMessage);
-                    return [];
-                });
-        }
-
-        function saveStudentToFirebase(student) {
-            if (!isAuthenticated) {
-                showError('Non authentifié');
-                return Promise.reject(new Error('Non authentifié'));
-            }
-            
-            const newStudentRef = firebase.ref(database, 'students').push();
-            return firebase.set(newStudentRef, {
-                firstName: student.firstName,
-                lastName: student.lastName,
-                class: student.class,
-                forfaitDays: student.forfaitDays,
-                locationDays: student.locationDays,
-                keycard: student.keycard,
-                timestamp: Date.now()
-            })
-            .then(() => {
-                return loadStudents();
+                
+                document.getElementById('loadingData').style.display = 'none';
+                updateUIState();
+                updateStudentList();
+                return students;
             })
             .catch((error) => {
-                console.error('Erreur de sauvegarde:', error);
-                showError(`Erreur de sauvegarde: ${error.message || error.code}`);
-                throw error;
+                console.error('Erreur de chargement:', error);
+                document.getElementById('loadingData').style.display = 'none';
+                
+                let errorMessage = 'Erreur de chargement: ' + (error.message || error.code);
+                showError(errorMessage);
+                return [];
             });
-        }
+    }
 
-        function updateStudentInFirebase(studentKey, student) {
-            if (!isAuthenticated) {
-                showError('Non authentifié');
-                return Promise.reject(new Error('Non authentifié'));
-            }
-            
-            const studentData = {
-                firstName: student.firstName,
-                lastName: student.lastName,
-                class: student.class,
-                forfaitDays: student.forfaitDays,
-                locationDays: student.locationDays,
-                keycard: student.keycard,
-                updatedAt: Date.now()
-            };
-            
-            return firebase.update(
-                firebase.ref(database, `students/${studentKey}`),
-                studentData
-            )
-            .then(() => loadStudents())
-            .catch((error) => {
-                console.error('Erreur de mise à jour:', error);
-                showError(`Erreur de mise à jour: ${error.message || error.code}`);
-                throw error;
-            });
-        }
+    function saveStudentToFirebase(student) {
+        console.log('Sauvegarde d\'un élève:', student);
+        
+        const newStudentRef = firebase.ref(database, 'students').push();
+        return firebase.set(newStudentRef, {
+            firstName: student.firstName,
+            lastName: student.lastName,
+            class: student.class,
+            forfaitDays: student.forfaitDays,
+            locationDays: student.locationDays,
+            keycard: student.keycard,
+            timestamp: Date.now()
+        })
+        .then(() => {
+            console.log('Élève sauvegardé avec succès');
+            return loadStudents();
+        })
+        .catch((error) => {
+            console.error('Erreur de sauvegarde:', error);
+            showError(`Erreur de sauvegarde: ${error.message || error.code}`);
+            throw error;
+        });
+    }
 
-        function deleteStudentFromFirebase(studentKey) {
-            if (!isAuthenticated) {
-                showError('Non authentifié');
-                return Promise.reject(new Error('Non authentifié'));
-            }
-            
-            return firebase.remove(
-                firebase.ref(database, `students/${studentKey}`)
-            )
-            .then(() => loadStudents())
-            .catch((error) => {
-                console.error('Erreur de suppression:', error);
-                showError(`Erreur de suppression: ${error.message || error.code}`);
-                throw error;
-            });
-        }
+    function updateStudentInFirebase(studentKey, student) {
+        console.log('Mise à jour de l\'élève:', studentKey, student);
+        
+        const studentData = {
+            firstName: student.firstName,
+            lastName: student.lastName,
+            class: student.class,
+            forfaitDays: student.forfaitDays,
+            locationDays: student.locationDays,
+            keycard: student.keycard,
+            updatedAt: Date.now()
+        };
+        
+        return firebase.update(
+            firebase.ref(database, `students/${studentKey}`),
+            studentData
+        )
+        .then(() => {
+            console.log('Élève mis à jour avec succès');
+            return loadStudents();
+        })
+        .catch((error) => {
+            console.error('Erreur de mise à jour:', error);
+            showError(`Erreur de mise à jour: ${error.message || error.code}`);
+            throw error;
+        });
+    }
 
-        // Interface utilisateur
-        function updateUIState() {
-            const isConnected = isAuthenticated;
-            document.getElementById('addBtn').disabled = !isConnected;
-            document.getElementById('downloadBtn').disabled = !isConnected;
-            
-            if (isConnected) {
-                document.getElementById('firebaseError').style.display = 'none';
-            }
-        }
+    function deleteStudentFromFirebase(studentKey) {
+        console.log('Suppression de l\'élève:', studentKey);
+        
+        return firebase.remove(
+            firebase.ref(database, `students/${studentKey}`)
+        )
+        .then(() => {
+            console.log('Élève supprimé avec succès');
+            return loadStudents();
+        })
+        .catch((error) => {
+            console.error('Erreur de suppression:', error);
+            showError(`Erreur de suppression: ${error.message || error.code}`);
+            throw error;
+        });
+    }
 
-        function showError(message) {
-            const errorDiv = document.getElementById('firebaseError');
-            errorDiv.textContent = `Erreur: ${message}`;
-            errorDiv.style.display = 'block';
-            
-            // Cacher après 5 secondes
-            setTimeout(() => {
-                errorDiv.style.display = 'none';
-            }, 5000);
+    // Interface utilisateur
+    function updateUIState() {
+        const isConnected = isAuthenticated;
+        document.getElementById('addBtn').disabled = !isConnected;
+        document.getElementById('downloadBtn').disabled = !isConnected;
+        
+        if (isConnected) {
+            document.getElementById('firebaseError').style.display = 'none';
         }
+    }
 
-        function filterStudents() {
-            const searchTerm = currentSearch.toLowerCase();
-            return students.filter(student => 
-                student.lastName.toLowerCase().includes(searchTerm) ||
-                student.firstName.toLowerCase().includes(searchTerm) ||
-                student.class.toLowerCase().includes(searchTerm)
-            );
-        }
+    function showError(message) {
+        console.error('Affichage erreur:', message);
+        const errorDiv = document.getElementById('firebaseError');
+        errorDiv.textContent = `Erreur: ${message}`;
+        errorDiv.style.display = 'block';
+        
+        // Afficher aussi dans la console
+        console.error('Erreur Firebase:', message);
+    }
 
-        function updateStudentList() {
-            const tbody = document.getElementById('studentsBody');
-            const emptyState = document.getElementById('emptyState');
-            const filteredStudents = filterStudents();
-            
-            if (filteredStudents.length === 0) {
-                tbody.innerHTML = '';
-                emptyState.style.display = 'block';
-                updateStats();
-                return;
-            }
-            
-            emptyState.style.display = 'none';
+    function filterStudents() {
+        const searchTerm = currentSearch.toLowerCase();
+        return students.filter(student => 
+            student.lastName.toLowerCase().includes(searchTerm) ||
+            student.firstName.toLowerCase().includes(searchTerm) ||
+            student.class.toLowerCase().includes(searchTerm)
+        );
+    }
+
+    function updateStudentList() {
+        const tbody = document.getElementById('studentsBody');
+        const emptyState = document.getElementById('emptyState');
+        const filteredStudents = filterStudents();
+        
+        if (filteredStudents.length === 0) {
             tbody.innerHTML = '';
-            
-            let totalAmount = 0;
-            let totalSavings = 0;
-            
-            filteredStudents.forEach((student) => {
-                const forfaitPrice = student.forfaitDays * 17.5;
-                const locationPrice = student.locationDays * 10;
-                const keycardPrice = student.keycard * 2;
-                const total = forfaitPrice + locationPrice + keycardPrice;
-                const savings = calculateSavings(total);
-                const realTotal = total - savings;
-                
-                totalAmount += total;
-                totalSavings += savings;
-                
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><strong>${student.lastName}</strong></td>
-                    <td>${student.firstName}</td>
-                    <td><span class="badge">${student.class}</span></td>
-                    <td class="amount-cell">${student.forfaitDays}j</td>
-                    <td class="amount-cell">${student.locationDays}j</td>
-                    <td class="amount-cell">${student.keycard ? 'Oui' : 'Non'}</td>
-                    <td class="amount-cell">${formatCurrency(total)}</td>
-                    <td class="amount-cell" style="color: var(--success);">${formatCurrency(savings)}</td>
-                    <td class="real-total">${formatCurrency(realTotal)}</td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="icon-btn" onclick="editStudent('${student.key}')" title="Modifier" ${!isAuthenticated ? 'disabled' : ''}>
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="icon-btn" onclick="deleteStudent('${student.key}')" title="Supprimer" ${!isAuthenticated ? 'disabled' : ''}>
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-            
-            updateStats(totalAmount, totalSavings);
+            emptyState.style.display = 'block';
+            updateStats();
+            return;
         }
+        
+        emptyState.style.display = 'none';
+        tbody.innerHTML = '';
+        
+        let totalAmount = 0;
+        let totalSavings = 0;
+        
+        filteredStudents.forEach((student) => {
+            const forfaitPrice = student.forfaitDays * 17.5;
+            const locationPrice = student.locationDays * 10;
+            const keycardPrice = student.keycard * 2;
+            const total = forfaitPrice + locationPrice + keycardPrice;
+            const savings = calculateSavings(total);
+            const realTotal = total - savings;
+            
+            totalAmount += total;
+            totalSavings += savings;
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${student.lastName}</strong></td>
+                <td>${student.firstName}</td>
+                <td><span class="badge">${student.class}</span></td>
+                <td class="amount-cell">${student.forfaitDays}j</td>
+                <td class="amount-cell">${student.locationDays}j</td>
+                <td class="amount-cell">${student.keycard ? 'Oui' : 'Non'}</td>
+                <td class="amount-cell">${formatCurrency(total)}</td>
+                <td class="amount-cell" style="color: var(--success);">${formatCurrency(savings)}</td>
+                <td class="real-total">${formatCurrency(realTotal)}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="icon-btn" onclick="editStudent('${student.key}')" title="Modifier" ${!isAuthenticated ? 'disabled' : ''}>
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="icon-btn" onclick="deleteStudent('${student.key}')" title="Supprimer" ${!isAuthenticated ? 'disabled' : ''}>
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+        
+        updateStats(totalAmount, totalSavings);
+    }
 
-        function updateStats(totalAmount = 0, totalSavings = 0) {
-            document.getElementById('totalStudents').textContent = students.length;
-            document.getElementById('totalAmount').textContent = formatCurrency(totalAmount);
-            document.getElementById('totalSavings').textContent = formatCurrency(totalSavings);
+    function updateStats(totalAmount = 0, totalSavings = 0) {
+        document.getElementById('totalStudents').textContent = students.length;
+        document.getElementById('totalAmount').textContent = formatCurrency(totalAmount);
+        document.getElementById('totalSavings').textContent = formatCurrency(totalSavings);
+    }
+
+    function addOrUpdateStudent() {
+        console.log('Bouton ajouter/mettre à jour cliqué');
+        
+        const firstName = document.getElementById('firstName').value.trim();
+        const lastName = document.getElementById('lastName').value.trim();
+        const studentClass = document.getElementById('class').value.trim().toUpperCase();
+        const forfaitDays = parseInt(document.getElementById('forfaitDays').value);
+        const locationDays = parseInt(document.getElementById('locationDays').value);
+        const keycard = parseInt(document.getElementById('keycard').value);
+        
+        console.log('Données du formulaire:', { firstName, lastName, studentClass, forfaitDays, locationDays, keycard });
+        
+        if (!firstName || !lastName || !studentClass) {
+            alert('Veuillez remplir tous les champs');
+            return;
         }
-
-        function addOrUpdateStudent() {
-            if (!isAuthenticated) {
-                showError('Veuillez vous authentifier d\'abord');
-                return;
-            }
-            
-            const firstName = document.getElementById('firstName').value.trim();
-            const lastName = document.getElementById('lastName').value.trim();
-            const studentClass = document.getElementById('class').value.trim().toUpperCase();
-            const forfaitDays = parseInt(document.getElementById('forfaitDays').value);
-            const locationDays = parseInt(document.getElementById('locationDays').value);
-            const keycard = parseInt(document.getElementById('keycard').value);
-            
-            if (!firstName || !lastName || !studentClass) {
-                alert('Veuillez remplir tous les champs');
-                return;
-            }
-            
-            if (studentClass.length !== 3) {
-                alert('La classe doit contenir 3 caractères (ex: 203, TG1)');
-                return;
-            }
-            
-            const student = {
-                firstName,
-                lastName,
-                class: studentClass,
-                forfaitDays,
-                locationDays,
-                keycard
-            };
-            
-            if (currentStudentKey !== null) {
-                updateStudentInFirebase(currentStudentKey, student)
-                    .then(() => {
-                        currentStudentKey = null;
-                        document.getElementById('addBtn').innerHTML = '<i class="fas fa-plus"></i> Ajouter élève';
-                        resetForm();
-                    })
-                    .catch(error => {
-                        console.error('Erreur:', error);
-                    });
-            } else {
-                saveStudentToFirebase(student)
-                    .then(() => {
-                        resetForm();
-                    })
-                    .catch(error => {
-                        console.error('Erreur:', error);
-                    });
-            }
+        
+        if (studentClass.length !== 3) {
+            alert('La classe doit contenir 3 caractères (ex: 203, TG1)');
+            return;
         }
-
-        function editStudent(studentKey) {
-            if (!isAuthenticated) {
-                showError('Non authentifié');
-                return;
-            }
-            
-            const student = students.find(s => s.key === studentKey);
-            if (student) {
-                document.getElementById('firstName').value = student.firstName;
-                document.getElementById('lastName').value = student.lastName;
-                document.getElementById('class').value = student.class;
-                document.getElementById('forfaitDays').value = student.forfaitDays;
-                document.getElementById('locationDays').value = student.locationDays;
-                document.getElementById('keycard').value = student.keycard;
-                
-                currentStudentKey = studentKey;
-                document.getElementById('addBtn').innerHTML = '<i class="fas fa-save"></i> Mettre à jour';
-            }
-        }
-
-        function deleteStudent(studentKey) {
-            if (!isAuthenticated) {
-                showError('Non authentifié');
-                return;
-            }
-            
-            if (confirm('Supprimer cet élève ?')) {
-                deleteStudentFromFirebase(studentKey)
-                    .catch(error => {
-                        console.error('Erreur:', error);
-                    });
-            }
-        }
-
-        function resetForm() {
-            document.getElementById('firstName').value = '';
-            document.getElementById('lastName').value = '';
-            document.getElementById('class').value = '';
-            document.getElementById('forfaitDays').value = '0';
-            document.getElementById('locationDays').value = '0';
-            document.getElementById('keycard').value = '0';
-            currentStudentKey = null;
-            document.getElementById('addBtn').innerHTML = '<i class="fas fa-plus"></i> Ajouter élève';
-        }
-
-        function downloadCSV() {
-            if (!isAuthenticated) {
-                showError('Non authentifié');
-                return;
-            }
-            
-            if (students.length === 0) {
-                alert('Aucun élève à exporter');
-                return;
-            }
-            
-            let csv = 'Nom;Prénom;Classe;Forfait_Jours;Forfait_Montant;Location_Jours;Location_Montant;KeyCard;KeyCard_Montant;Total;Economie;Total_Reel\n';
-            
-            students.forEach(student => {
-                const forfaitPrice = student.forfaitDays * 17.5;
-                const locationPrice = student.locationDays * 10;
-                const keycardPrice = student.keycard * 2;
-                const total = forfaitPrice + locationPrice + keycardPrice;
-                const savings = calculateSavings(total);
-                const realTotal = total - savings;
-                
-                csv += `${student.lastName};${student.firstName};${student.class};`;
-                csv += `${student.forfaitDays};${forfaitPrice.toFixed(2)};`;
-                csv += `${student.locationDays};${locationPrice.toFixed(2)};`;
-                csv += `${student.keycard ? 'Oui' : 'Non'};${keycardPrice.toFixed(2)};`;
-                csv += `${total.toFixed(2)};${savings.toFixed(2)};${realTotal.toFixed(2)}\n`;
-            });
-            
-            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `paiements_sortie_${new Date().toISOString().slice(0,10)}.csv`;
-            link.click();
-        }
-
-        // Gestion de l'authentification
-        function showAuthScreen() {
-            isAuthenticated = false;
-            students = [];
-            updateUIState();
-            updateStudentList();
-            
-            document.getElementById('authOverlay').style.display = 'flex';
-            document.getElementById('appContainer').style.display = 'none';
-            document.getElementById('authCode').value = '';
-            document.getElementById('authError').textContent = '';
-            document.getElementById('authCode').focus();
-        }
-
-        function handleAuth() {
-            const codeInput = document.getElementById('authCode');
-            const errorDiv = document.getElementById('authError');
-            const code = codeInput.value;
-            
-            // Validation du code
-            if (code.length !== 4 || !/^\d{4}$/.test(code)) {
-                codeInput.classList.add('error');
-                errorDiv.textContent = 'Le code doit contenir exactement 4 chiffres';
-                return;
-            }
-            
-            // Tester le code d'authentification
-            verifyAuthCode(code)
-                .then((isValid) => {
-                    if (isValid) {
-                        // Authentification réussie
-                        codeInput.classList.remove('error');
-                        errorDiv.textContent = '';
-                        
-                        // Masquer l'écran d'authentification
-                        document.getElementById('authOverlay').style.display = 'none';
-                        document.getElementById('appContainer').style.display = 'block';
-                        
-                        // Charger les données
-                        return loadStudents();
-                    }
+        
+        const student = {
+            firstName,
+            lastName,
+            class: studentClass,
+            forfaitDays,
+            locationDays,
+            keycard
+        };
+        
+        if (currentStudentKey !== null) {
+            console.log('Mise à jour de l\'élève avec clé:', currentStudentKey);
+            updateStudentInFirebase(currentStudentKey, student)
+                .then(() => {
+                    currentStudentKey = null;
+                    document.getElementById('addBtn').innerHTML = '<i class="fas fa-plus"></i> Ajouter élève';
+                    resetForm();
+                    console.log('Élève mis à jour avec succès');
                 })
-                .catch((error) => {
-                    // Code incorrect ou autre erreur
-                    codeInput.classList.add('error');
-                    errorDiv.textContent = error.message || 'Code incorrect';
-                    codeInput.value = '';
-                    codeInput.focus();
-                    console.error('Erreur d\'authentification détaillée:', error);
+                .catch(error => {
+                    console.error('Erreur lors de la mise à jour:', error);
+                    alert('Erreur lors de la mise à jour: ' + (error.message || 'Vérifiez la console'));
+                });
+        } else {
+            console.log('Ajout d\'un nouvel élève');
+            saveStudentToFirebase(student)
+                .then(() => {
+                    resetForm();
+                    console.log('Élève ajouté avec succès');
+                })
+                .catch(error => {
+                    console.error('Erreur lors de l\'ajout:', error);
+                    alert('Erreur lors de l\'ajout: ' + (error.message || 'Vérifiez la console'));
                 });
         }
+    }
 
-        // Initialisation
-        function initApp() {
-            // Configuration du monitoring de connexion
-            setupConnectionMonitoring();
+    function editStudent(studentKey) {
+        console.log('Édition de l\'élève:', studentKey);
+        const student = students.find(s => s.key === studentKey);
+        if (student) {
+            document.getElementById('firstName').value = student.firstName;
+            document.getElementById('lastName').value = student.lastName;
+            document.getElementById('class').value = student.class;
+            document.getElementById('forfaitDays').value = student.forfaitDays;
+            document.getElementById('locationDays').value = student.locationDays;
+            document.getElementById('keycard').value = student.keycard;
             
-            // Afficher l'écran d'authentification au démarrage
-            showAuthScreen();
+            currentStudentKey = studentKey;
+            document.getElementById('addBtn').innerHTML = '<i class="fas fa-save"></i> Mettre à jour';
+            console.log('Formulaire rempli pour édition');
         }
+    }
 
-        // Événements
-        document.getElementById('addBtn').addEventListener('click', addOrUpdateStudent);
-        document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
-        document.getElementById('searchInput').addEventListener('input', function(e) {
-            currentSearch = e.target.value;
-            updateStudentList();
-        });
-        document.getElementById('authButton').addEventListener('click', handleAuth);
-        document.getElementById('authCode').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                handleAuth();
-            }
-        });
+    function deleteStudent(studentKey) {
+        console.log('Demande de suppression de l\'élève:', studentKey);
+        if (confirm('Supprimer cet élève ?')) {
+            deleteStudentFromFirebase(studentKey)
+                .then(() => {
+                    console.log('Élève supprimé avec succès');
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la suppression:', error);
+                    alert('Erreur lors de la suppression: ' + (error.message || 'Vérifiez la console'));
+                });
+        }
+    }
 
-        document.getElementById('class').addEventListener('input', function(e) {
-            this.value = this.value.toUpperCase().slice(0, 3);
-        });
+    function resetForm() {
+        document.getElementById('firstName').value = '';
+        document.getElementById('lastName').value = '';
+        document.getElementById('class').value = '';
+        document.getElementById('forfaitDays').value = '0';
+        document.getElementById('locationDays').value = '0';
+        document.getElementById('keycard').value = '0';
+        currentStudentKey = null;
+        document.getElementById('addBtn').innerHTML = '<i class="fas fa-plus"></i> Ajouter élève';
+    }
 
-        document.getElementById('authCode').addEventListener('input', function(e) {
-            this.value = this.value.replace(/\D/g, '').slice(0, 4);
-            this.classList.remove('error');
-            document.getElementById('authError').textContent = '';
+    function downloadCSV() {
+        if (students.length === 0) {
+            alert('Aucun élève à exporter');
+            return;
+        }
+        
+        let csv = 'Nom;Prénom;Classe;Forfait_Jours;Forfait_Montant;Location_Jours;Location_Montant;KeyCard;KeyCard_Montant;Total;Economie;Total_Reel\n';
+        
+        students.forEach(student => {
+            const forfaitPrice = student.forfaitDays * 17.5;
+            const locationPrice = student.locationDays * 10;
+            const keycardPrice = student.keycard * 2;
+            const total = forfaitPrice + locationPrice + keycardPrice;
+            const savings = calculateSavings(total);
+            const realTotal = total - savings;
+            
+            csv += `${student.lastName};${student.firstName};${student.class};`;
+            csv += `${student.forfaitDays};${forfaitPrice.toFixed(2)};`;
+            csv += `${student.locationDays};${locationPrice.toFixed(2)};`;
+            csv += `${student.keycard ? 'Oui' : 'Non'};${keycardPrice.toFixed(2)};`;
+            csv += `${total.toFixed(2)};${savings.toFixed(2)};${realTotal.toFixed(2)}\n`;
         });
+        
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `paiements_sortie_${new Date().toISOString().slice(0,10)}.csv`;
+        link.click();
+    }
 
-        // Initialiser l'application
-        document.addEventListener('DOMContentLoaded', initApp);
-    </script>
+    // Gestion de l'authentification (simplifiée pour les tests)
+    function handleAuth() {
+        console.log('Bouton d\'authentification cliqué');
+        
+        const codeInput = document.getElementById('authCode');
+        const errorDiv = document.getElementById('authError');
+        const code = codeInput.value;
+        
+        // Validation basique du code
+        if (code.length !== 4 || !/^\d{4}$/.test(code)) {
+            codeInput.classList.add('error');
+            errorDiv.textContent = 'Le code doit contenir exactement 4 chiffres';
+            console.error('Code invalide:', code);
+            return;
+        }
+        
+        console.log('Code saisi:', code);
+        
+        // Pour le test, on accepte TOUT code à 4 chiffres
+        // On teste simplement la connexion Firebase
+        testFirebaseConnection()
+            .then((connected) => {
+                if (connected) {
+                    console.log('Authentification réussie (test)');
+                    codeInput.classList.remove('error');
+                    errorDiv.textContent = '';
+                    
+                    // Masquer l'écran d'authentification
+                    document.getElementById('authOverlay').style.display = 'none';
+                    document.getElementById('appContainer').style.display = 'block';
+                    
+                    // Charger les données
+                    return loadStudents();
+                }
+            })
+            .catch((error) => {
+                console.error('Erreur d\'authentification:', error);
+                codeInput.classList.add('error');
+                errorDiv.textContent = error.message || 'Erreur de connexion à Firebase';
+                codeInput.value = '';
+                codeInput.focus();
+            });
+    }
+
+    // Initialisation
+    function initApp() {
+        console.log('Initialisation de l\'application...');
+        
+        // Focus sur le champ de code
+        document.getElementById('authCode').focus();
+        
+        // Afficher un message d'information
+        document.getElementById('authInfo').textContent = 
+            'Mode test: Tout code à 4 chiffres est accepté pour le moment';
+    }
+
+    // Événements
+    document.getElementById('addBtn').addEventListener('click', addOrUpdateStudent);
+    document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+        currentSearch = e.target.value;
+        updateStudentList();
+    });
+    document.getElementById('authButton').addEventListener('click', handleAuth);
+    document.getElementById('authCode').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            handleAuth();
+        }
+    });
+
+    document.getElementById('class').addEventListener('input', function(e) {
+        this.value = this.value.toUpperCase().slice(0, 3);
+    });
+
+    document.getElementById('authCode').addEventListener('input', function(e) {
+        this.value = this.value.replace(/\D/g, '').slice(0, 4);
+        this.classList.remove('error');
+        document.getElementById('authError').textContent = '';
+    });
+
+    // Initialiser l'application
+    document.addEventListener('DOMContentLoaded', initApp);
+</script>
 </body>
 </html>
