@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion Sortie</title>
+    <title>Gestion Sortie Scolaire</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -15,6 +15,7 @@
             --gray: #64748b;
             --gray-light: #e2e8f0;
             --success: #10b981;
+            --danger: #ef4444;
             --border: #e2e8f0;
         }
 
@@ -103,7 +104,7 @@
         }
 
         .auth-input.error {
-            border-color: #ef4444;
+            border-color: var(--danger);
             animation: shake 0.3s;
         }
 
@@ -134,8 +135,22 @@
             background: var(--secondary);
         }
 
+        .auth-button.loading {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .auth-button.loading i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         .auth-error {
-            color: #ef4444;
+            color: var(--danger);
             font-size: 14px;
             margin-top: 15px;
             min-height: 20px;
@@ -286,6 +301,11 @@
             transform: translateY(-1px);
         }
 
+        .add-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -344,6 +364,11 @@
             transform: translateY(-1px);
         }
 
+        .download-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .search-container {
             margin-bottom: 25px;
         }
@@ -376,6 +401,7 @@
             border-radius: 12px;
             border: 1px solid var(--border);
             background: white;
+            margin-bottom: 20px;
         }
 
         .data-table {
@@ -463,6 +489,11 @@
             border-color: var(--primary);
             color: var(--primary);
             transform: translateY(-1px);
+        }
+
+        .icon-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .empty-state {
@@ -569,9 +600,41 @@
             margin: 0 auto 15px;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .logout-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 100;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+            transform: translateY(-1px);
+        }
+
+        .session-timer {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--gray);
+            border: 1px solid var(--border);
+            z-index: 100;
         }
     </style>
 </head>
@@ -592,7 +655,17 @@
         </div>
     </div>
 
-    <!-- Application principale (cachée au début) -->
+    <!-- Bouton de déconnexion -->
+    <button class="logout-btn" id="logoutBtn" style="display: none;">
+        <i class="fas fa-sign-out-alt"></i> Déconnexion
+    </button>
+
+    <!-- Timer de session -->
+    <div class="session-timer" id="sessionTimer" style="display: none;">
+        Session expire dans: <span id="timerValue">30:00</span>
+    </div>
+
+    <!-- Application principale -->
     <div class="app-container" id="appContainer">
         <div class="container">
             <div class="main-grid">
@@ -743,10 +816,7 @@
             databaseURL: "https://bde-ski-default-rtdb.europe-west1.firebasedatabase.app/"
         };
 
-        // Initialisation Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const database = firebase.getDatabase(app);
-
+        // Variables globales
         const savingsMap = {
             17.5: 5.55,
             10: 3.1,
@@ -758,178 +828,122 @@
             37: 11.92
         };
 
+        let app = null;
+        let database = null;
+        let authToken = null;
+        let sessionTimer = null;
         let students = [];
         let editIndex = null;
         let currentSearch = '';
-        let currentAuthCode = null;
 
-        // Fonctions utilitaires
-        function formatCurrency(amount) {
-            return amount.toFixed(2) + '€';
+        // Fonction SHA256
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
-        function calculateSavings(total) {
-            return savingsMap[total] || 0;
+        // Fonction pour générer un ID unique
+        function generateId() {
+            return Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         }
 
-        // Fonction pour authentifier avec un code
-       function authenticateWithCode(code) {
-    // Tente de lire le nœud racine avec le code comme paramètre d'authentification
-    return firebase.ref(database, '/').get()
-        .then(() => {
-            // Si on arrive ici, l'authentification a réussi
-            return true;
-        })
-        .catch(error => {
-            // Échec d'authentification
-            throw new Error('Code invalide');
-        });
-}
-        // Fonction pour créer une référence avec authentification
-        function getRef(path) {
-            return firebase.ref(database, path);
-        }
-
-        // Fonction pour charger les étudiants avec le code d'authentification
-        function loadStudents() {
-            if (!currentAuthCode) {
-                console.error('Pas de code d\'authentification');
-                return Promise.reject('Pas authentifié');
+        // Fonction d'authentification
+        async function authenticateWithCode(code) {
+            const authButton = document.getElementById('authButton');
+            const errorDiv = document.getElementById('authError');
+            
+            // Validation du code
+            if (code.length !== 4 || !/^\d{4}$/.test(code)) {
+                showAuthError('Le code doit contenir exactement 4 chiffres');
+                return null;
             }
             
-            document.getElementById('loadingData').style.display = 'block';
-            
-            return firebase.ref(database, 'students').once('value')
-                .then((snapshot) => {
-                    const data = snapshot.val();
-                    
-                    if (data) {
-                        // Convertir l'objet en tableau
-                        students = Object.values(data);
-                        
-                        // Ajouter les IDs pour référence
-                        students.forEach((student, index) => {
-                            student.id = Object.keys(data)[index];
-                        });
-                    } else {
-                        students = [];
-                    }
-                    
-                    document.getElementById('loadingData').style.display = 'none';
-                    updateStudentList();
-                    return students;
-                })
-                .catch((error) => {
-                    console.error('Erreur de chargement:', error);
-                    document.getElementById('loadingData').style.display = 'none';
-                    
-                    // Si erreur d'authentification, retourner à l'écran de connexion
-                    if (error.code === 'PERMISSION_DENIED') {
-                        showAuthError('Code invalide');
-                        resetAuth();
-                    } else {
-                        alert('Erreur de chargement des données: ' + error.message);
-                    }
-                    
-                    return [];
-                });
-        }
-
-        // Fonction pour sauvegarder un étudiant
-        function saveStudentToFirebase(student) {
-            if (!currentAuthCode) {
-                alert('Vous devez être authentifié');
-                return Promise.reject('Pas authentifié');
-            }
-            
-            const newStudentRef = firebase.ref(database, 'students').push();
-            return firebase.set(newStudentRef, {
-                firstName: student.firstName,
-                lastName: student.lastName,
-                class: student.class,
-                forfaitDays: student.forfaitDays,
-                locationDays: student.locationDays,
-                keycard: student.keycard,
-                timestamp: Date.now()
-            })
-            .then(() => {
-                return loadStudents();
-            })
-            .catch((error) => {
-                console.error('Erreur de sauvegarde:', error);
-                if (error.code === 'PERMISSION_DENIED') {
-                    showAuthError('Code invalide - Session expirée');
-                    resetAuth();
+            try {
+                // Activer l'état de chargement
+                authButton.classList.add('loading');
+                authButton.disabled = true;
+                authButton.innerHTML = '<i class="fas fa-spinner"></i> Vérification...';
+                
+                // Initialiser Firebase sans authentification
+                if (app) {
+                    app.delete();
                 }
-                throw error;
-            });
-        }
-
-        // Fonction pour mettre à jour un étudiant
-        function updateStudentInFirebase(index, student) {
-            if (!currentAuthCode) {
-                alert('Vous devez être authentifié');
-                return Promise.reject('Pas authentifié');
-            }
-            
-            if (index >= 0 && index < students.length) {
-                const studentId = students[index].id;
-                const studentRef = firebase.ref(database, `students/${studentId}`);
+                app = firebase.initializeApp(firebaseConfig, 'temp_auth');
+                database = firebase.getDatabase(app);
                 
-                return firebase.update(studentRef, {
-                    firstName: student.firstName,
-                    lastName: student.lastName,
-                    class: student.class,
-                    forfaitDays: student.forfaitDays,
-                    locationDays: student.locationDays,
-                    keycard: student.keycard,
-                    updatedAt: Date.now()
-                })
-                .then(() => loadStudents())
-                .catch((error) => {
-                    if (error.code === 'PERMISSION_DENIED') {
-                        showAuthError('Code invalide - Session expirée');
-                        resetAuth();
-                    }
-                    throw error;
+                // 1. Lire la clé publique
+                const accessControlRef = firebase.ref(database, 'access_control');
+                const accessSnapshot = await firebase.get(accessControlRef);
+                
+                if (!accessSnapshot.exists()) {
+                    throw new Error('Configuration manquante dans la base de données');
+                }
+                
+                const publicKey = accessSnapshot.val().public_key;
+                
+                // 2. Vérifier que le code correspond à la clé publique
+                const codeHash = await sha256(code);
+                if (codeHash !== publicKey) {
+                    throw new Error('Code incorrect');
+                }
+                
+                // 3. Générer un challenge
+                const challengeId = generateId();
+                const challenge = generateId();
+                const timestamp = Date.now();
+                
+                // 4. Sauvegarder le challenge
+                const challengeRef = firebase.ref(database, `challenges/${challengeId}`);
+                await firebase.set(challengeRef, {
+                    challenge: challenge,
+                    timestamp: timestamp
                 });
-            }
-            
-            return Promise.reject('Index invalide');
-        }
-
-        // Fonction pour supprimer un étudiant
-        function deleteStudentFromFirebase(index) {
-            if (!currentAuthCode) {
-                alert('Vous devez être authentifié');
-                return Promise.reject('Pas authentifié');
-            }
-            
-            if (index >= 0 && index < students.length) {
-                const studentId = students[index].id;
-                const studentRef = firebase.ref(database, `students/${studentId}`);
                 
-                return firebase.remove(studentRef)
-                    .then(() => loadStudents())
-                    .catch((error) => {
-                        if (error.code === 'PERMISSION_DENIED') {
-                            showAuthError('Code invalide - Session expirée');
-                            resetAuth();
-                        }
-                        throw error;
-                    });
+                // 5. Calculer la réponse et le hash de réponse
+                const response = await sha256(code + challenge);
+                const responseHash = await sha256(response);
+                
+                // 6. Sauvegarder la réponse valide
+                const responseRef = firebase.ref(database, `valid_responses/${responseHash}`);
+                await firebase.set(responseRef, {
+                    challengeId: challengeId,
+                    response: response,
+                    timestamp: timestamp
+                });
+                
+                // 7. Réinitialiser Firebase avec le token d'authentification
+                app.delete();
+                app = firebase.initializeApp(firebaseConfig, 'authenticated_app');
+                database = firebase.getDatabase(app);
+                
+                // Stocker le token
+                authToken = responseHash;
+                localStorage.setItem('authToken', authToken);
+                localStorage.setItem('authTimestamp', timestamp.toString());
+                
+                return authToken;
+                
+            } catch (error) {
+                console.error('Erreur d\'authentification:', error);
+                
+                if (error.message.includes('PERMISSION_DENIED') || 
+                    error.message.includes('permission-denied')) {
+                    showAuthError('Code incorrect ou accès refusé');
+                } else if (error.message.includes('Configuration manquante')) {
+                    showAuthError('Erreur de configuration de la base de données');
+                } else {
+                    showAuthError('Erreur de connexion: ' + error.message);
+                }
+                
+                return null;
+            } finally {
+                // Réinitialiser le bouton
+                authButton.classList.remove('loading');
+                authButton.disabled = false;
+                authButton.innerHTML = '<i class="fas fa-lock"></i> Accéder';
             }
-            
-            return Promise.reject('Index invalide');
-        }
-
-        // Réinitialiser l'authentification
-        function resetAuth() {
-            currentAuthCode = null;
-            document.getElementById('authOverlay').style.display = 'flex';
-            document.getElementById('appContainer').style.display = 'none';
-            document.getElementById('authCode').value = '';
-            document.getElementById('authCode').focus();
         }
 
         // Afficher une erreur d'authentification
@@ -941,12 +955,166 @@
             input.classList.add('error');
             
             setTimeout(() => {
-                input.classList.remove('error');
                 errorDiv.textContent = '';
-            }, 3000);
+            }, 5000);
         }
 
-        // Interface utilisateur
+        // Vérifier l'authentification au chargement
+        async function checkExistingAuth() {
+            const savedToken = localStorage.getItem('authToken');
+            const savedTimestamp = localStorage.getItem('authTimestamp');
+            
+            if (!savedToken || !savedTimestamp) {
+                return false;
+            }
+            
+            // Vérifier si la session est encore valide (30 minutes)
+            const sessionAge = Date.now() - parseInt(savedTimestamp);
+            if (sessionAge > 30 * 60 * 1000) {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('authTimestamp');
+                return false;
+            }
+            
+            try {
+                // Initialiser avec le token sauvegardé
+                if (app) {
+                    app.delete();
+                }
+                app = firebase.initializeApp(firebaseConfig, 'authenticated_app');
+                database = firebase.getDatabase(app);
+                authToken = savedToken;
+                
+                // Tester la connexion
+                await firebase.ref(database, 'students').limitToFirst(1).once('value');
+                
+                return true;
+            } catch (error) {
+                console.error('Session invalide:', error);
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('authTimestamp');
+                return false;
+            }
+        }
+
+        // Démarrer la session
+        function startSession() {
+            // Afficher l'application
+            document.getElementById('authOverlay').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            document.getElementById('logoutBtn').style.display = 'flex';
+            document.getElementById('sessionTimer').style.display = 'block';
+            
+            // Charger les données
+            loadStudents();
+            
+            // Démarrer le timer de session
+            startSessionTimer();
+            
+            // Focus sur le champ de recherche
+            document.getElementById('searchInput').focus();
+        }
+
+        // Gérer le timer de session
+        function startSessionTimer() {
+            const savedTimestamp = parseInt(localStorage.getItem('authTimestamp'));
+            if (!savedTimestamp) return;
+            
+            clearInterval(sessionTimer);
+            
+            function updateTimer() {
+                const now = Date.now();
+                const elapsed = now - savedTimestamp;
+                const remaining = 30 * 60 * 1000 - elapsed;
+                
+                if (remaining <= 0) {
+                    logout();
+                    return;
+                }
+                
+                const minutes = Math.floor(remaining / 60000);
+                const seconds = Math.floor((remaining % 60000) / 1000);
+                document.getElementById('timerValue').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+            
+            updateTimer();
+            sessionTimer = setInterval(updateTimer, 1000);
+        }
+
+        // Déconnexion
+        function logout() {
+            clearInterval(sessionTimer);
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('authTimestamp');
+            
+            if (app) {
+                app.delete();
+                app = null;
+                database = null;
+            }
+            
+            authToken = null;
+            students = [];
+            
+            // Réafficher l'écran d'authentification
+            document.getElementById('authOverlay').style.display = 'flex';
+            document.getElementById('appContainer').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'none';
+            document.getElementById('sessionTimer').style.display = 'none';
+            document.getElementById('authCode').value = '';
+            document.getElementById('authCode').focus();
+            
+            // Réinitialiser l'interface
+            document.getElementById('studentsBody').innerHTML = '';
+            document.getElementById('emptyState').style.display = 'block';
+            updateStats();
+        }
+
+        // Fonctions utilitaires
+        function formatCurrency(amount) {
+            return amount.toFixed(2).replace('.', ',') + '€';
+        }
+
+        function calculateSavings(total) {
+            return savingsMap[total] || 0;
+        }
+
+        // Gestion des données
+        async function loadStudents() {
+            if (!database) return;
+            
+            const loadingElement = document.getElementById('loadingData');
+            loadingElement.style.display = 'block';
+            
+            try {
+                const studentsRef = firebase.ref(database, 'students');
+                const snapshot = await firebase.get(studentsRef);
+                
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    students = Object.entries(data).map(([id, studentData]) => ({
+                        id: id,
+                        ...studentData
+                    }));
+                } else {
+                    students = [];
+                }
+                
+                updateStudentList();
+            } catch (error) {
+                console.error('Erreur de chargement:', error);
+                if (error.code === 'PERMISSION_DENIED') {
+                    showMessage('Session expirée. Veuillez vous reconnecter.', 'error');
+                    logout();
+                } else {
+                    showMessage('Erreur de chargement des données', 'error');
+                }
+            } finally {
+                loadingElement.style.display = 'none';
+            }
+        }
+
         function filterStudents() {
             const searchTerm = currentSearch.toLowerCase();
             return students.filter(student => 
@@ -975,8 +1143,6 @@
             let totalSavings = 0;
             
             filteredStudents.forEach((student, index) => {
-                const originalIndex = students.findIndex(s => s.id === student.id);
-                
                 const forfaitPrice = student.forfaitDays * 17.5;
                 const locationPrice = student.locationDays * 10;
                 const keycardPrice = student.keycard * 2;
@@ -1000,10 +1166,10 @@
                     <td class="real-total">${formatCurrency(realTotal)}</td>
                     <td>
                         <div class="action-buttons">
-                            <button class="icon-btn" onclick="editStudent(${originalIndex})" title="Modifier">
+                            <button class="icon-btn" onclick="editStudent('${student.id}')" title="Modifier">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="icon-btn" onclick="deleteStudent(${originalIndex})" title="Supprimer">
+                            <button class="icon-btn" onclick="deleteStudent('${student.id}')" title="Supprimer">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -1021,7 +1187,12 @@
             document.getElementById('totalSavings').textContent = formatCurrency(totalSavings);
         }
 
-        function addOrUpdateStudent() {
+        async function addOrUpdateStudent() {
+            if (!database) {
+                showMessage('Non authentifié', 'error');
+                return;
+            }
+            
             const firstName = document.getElementById('firstName').value.trim();
             const lastName = document.getElementById('lastName').value.trim();
             const studentClass = document.getElementById('class').value.trim().toUpperCase();
@@ -1029,54 +1200,66 @@
             const locationDays = parseInt(document.getElementById('locationDays').value);
             const keycard = parseInt(document.getElementById('keycard').value);
             
+            // Validation
             if (!firstName || !lastName || !studentClass) {
-                alert('Veuillez remplir tous les champs');
+                showMessage('Veuillez remplir tous les champs', 'error');
                 return;
             }
             
             if (studentClass.length !== 3) {
-                alert('La classe doit contenir 3 caractères (ex: 203, TG1)');
+                showMessage('La classe doit contenir 3 caractères (ex: 203, TG1)', 'error');
                 return;
             }
             
-            const student = {
+            const studentData = {
                 firstName,
                 lastName,
                 class: studentClass,
                 forfaitDays,
                 locationDays,
-                keycard
+                keycard,
+                updatedAt: Date.now()
             };
             
-            if (editIndex !== null) {
-                updateStudentInFirebase(editIndex, student)
-                    .then(() => {
-                        editIndex = null;
-                        document.getElementById('addBtn').innerHTML = '<i class="fas fa-plus"></i> Ajouter élève';
-                        resetForm();
-                    })
-                    .catch(error => {
-                        console.error('Erreur de mise à jour:', error);
-                        if (error.code !== 'PERMISSION_DENIED') {
-                            alert('Erreur lors de la mise à jour');
-                        }
+            try {
+                if (editIndex) {
+                    // Mettre à jour un élève existant
+                    const studentRef = firebase.ref(database, `students/${editIndex}`);
+                    await firebase.update(studentRef, studentData);
+                    showMessage('Élève mis à jour avec succès', 'success');
+                    editIndex = null;
+                    document.getElementById('addBtn').innerHTML = '<i class="fas fa-plus"></i> Ajouter élève';
+                } else {
+                    // Ajouter un nouvel élève
+                    const newStudentRef = firebase.ref(database, 'students').push();
+                    await firebase.set(newStudentRef, {
+                        ...studentData,
+                        createdAt: Date.now()
                     });
-            } else {
-                saveStudentToFirebase(student)
-                    .then(() => {
-                        resetForm();
-                    })
-                    .catch(error => {
-                        console.error('Erreur d\'ajout:', error);
-                        if (error.code !== 'PERMISSION_DENIED') {
-                            alert('Erreur lors de l\'ajout');
-                        }
-                    });
+                    showMessage('Élève ajouté avec succès', 'success');
+                }
+                
+                // Réinitialiser le formulaire
+                resetForm();
+                
+                // Recharger les données
+                await loadStudents();
+                
+            } catch (error) {
+                console.error('Erreur de sauvegarde:', error);
+                if (error.code === 'PERMISSION_DENIED') {
+                    showMessage('Session expirée. Veuillez vous reconnecter.', 'error');
+                    logout();
+                } else {
+                    showMessage('Erreur de sauvegarde: ' + error.message, 'error');
+                }
             }
         }
 
-        function editStudent(index) {
-            const student = students[index];
+        async function editStudent(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+            
             document.getElementById('firstName').value = student.firstName;
             document.getElementById('lastName').value = student.lastName;
             document.getElementById('class').value = student.class;
@@ -1084,19 +1267,31 @@
             document.getElementById('locationDays').value = student.locationDays;
             document.getElementById('keycard').value = student.keycard;
             
-            editIndex = index;
+            editIndex = studentId;
             document.getElementById('addBtn').innerHTML = '<i class="fas fa-save"></i> Mettre à jour';
+            
+            // Scroll vers le formulaire sur mobile
+            if (window.innerWidth < 768) {
+                document.querySelector('.form-card').scrollIntoView({ behavior: 'smooth' });
+            }
         }
 
-        function deleteStudent(index) {
-            if (confirm('Supprimer cet élève ?')) {
-                deleteStudentFromFirebase(index)
-                    .catch(error => {
-                        console.error('Erreur de suppression:', error);
-                        if (error.code !== 'PERMISSION_DENIED') {
-                            alert('Erreur lors de la suppression');
-                        }
-                    });
+        async function deleteStudent(studentId) {
+            if (!confirm('Supprimer cet élève ?')) return;
+            
+            try {
+                const studentRef = firebase.ref(database, `students/${studentId}`);
+                await firebase.remove(studentRef);
+                showMessage('Élève supprimé avec succès', 'success');
+                await loadStudents();
+            } catch (error) {
+                console.error('Erreur de suppression:', error);
+                if (error.code === 'PERMISSION_DENIED') {
+                    showMessage('Session expirée. Veuillez vous reconnecter.', 'error');
+                    logout();
+                } else {
+                    showMessage('Erreur de suppression', 'error');
+                }
             }
         }
 
@@ -1111,7 +1306,7 @@
 
         function downloadCSV() {
             if (students.length === 0) {
-                alert('Aucun élève à exporter');
+                showMessage('Aucun élève à exporter', 'error');
                 return;
             }
             
@@ -1137,86 +1332,94 @@
             link.href = URL.createObjectURL(blob);
             link.download = `paiements_sortie_${new Date().toISOString().slice(0,10)}.csv`;
             link.click();
+            
+            showMessage('Export CSV généré', 'success');
         }
 
-        // Gestion de l'authentification
-        function handleAuth() {
-            const codeInput = document.getElementById('authCode');
-            const errorDiv = document.getElementById('authError');
-            const code = codeInput.value;
+        function showMessage(message, type) {
+            // Créer une notification temporaire
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 12px 24px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 1000;
+                animation: slideDown 0.3s ease;
+            `;
             
-            // Validation du code
-            if (code.length !== 4 || !/^\d{4}$/.test(code)) {
-                codeInput.classList.add('error');
-                errorDiv.textContent = 'Le code doit contenir exactement 4 chiffres';
-                return;
+            if (type === 'success') {
+                notification.style.backgroundColor = 'var(--success)';
+            } else if (type === 'error') {
+                notification.style.backgroundColor = 'var(--danger)';
+            } else {
+                notification.style.backgroundColor = 'var(--primary)';
             }
             
-            // Tentative d'authentification
-            authenticateWithCode(code)
-                .then((result) => {
-                    // Authentification réussie
-                    codeInput.classList.remove('error');
-                    errorDiv.textContent = '';
-                    
-                    // Masquer l'écran d'authentification
-                    document.getElementById('authOverlay').style.display = 'none';
-                    document.getElementById('appContainer').style.display = 'block';
-                    
-                    // Charger les étudiants
-                    if (result.studentsData) {
-                        // Les données sont déjà chargées
-                        const data = result.studentsData;
-                        if (data) {
-                            students = Object.values(data);
-                            Object.keys(data).forEach((key, index) => {
-                                students[index].id = key;
-                            });
-                        } else {
-                            students = [];
-                        }
-                        updateStudentList();
-                    } else {
-                        // Charger les données normalement
-                        loadStudents();
-                    }
-                })
-                .catch((error) => {
-                    // Échec de l'authentification
-                    codeInput.classList.add('error');
-                    errorDiv.textContent = error.message || 'Code incorrect';
-                    codeInput.value = '';
-                    codeInput.focus();
-                });
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
         }
 
-        // Événements
-        document.getElementById('addBtn').addEventListener('click', addOrUpdateStudent);
-        document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
-        document.getElementById('searchInput').addEventListener('input', function(e) {
-            currentSearch = e.target.value;
-            updateStudentList();
+        // Gestion des événements
+        document.getElementById('authButton').addEventListener('click', async () => {
+            const code = document.getElementById('authCode').value;
+            const token = await authenticateWithCode(code);
+            if (token) {
+                startSession();
+            }
         });
-        document.getElementById('authButton').addEventListener('click', handleAuth);
-        document.getElementById('authCode').addEventListener('keypress', function(e) {
+
+        document.getElementById('authCode').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                handleAuth();
+                document.getElementById('authButton').click();
             }
         });
 
-        document.getElementById('class').addEventListener('input', function(e) {
-            this.value = this.value.toUpperCase().slice(0, 3);
-        });
-
-        document.getElementById('authCode').addEventListener('input', function(e) {
-            this.value = this.value.replace(/\D/g, '').slice(0, 4);
-            this.classList.remove('error');
+        document.getElementById('authCode').addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+            e.target.classList.remove('error');
             document.getElementById('authError').textContent = '';
         });
 
-        // Focus sur le champ de code au chargement
-        document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('logoutBtn').addEventListener('click', logout);
+
+        document.getElementById('addBtn').addEventListener('click', addOrUpdateStudent);
+        document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
+        
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            currentSearch = e.target.value;
+            updateStudentList();
+        });
+
+        document.getElementById('class').addEventListener('input', (e) => {
+            e.target.value = e.target.value.toUpperCase().slice(0, 3);
+        });
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Focus sur le champ de code
             document.getElementById('authCode').focus();
+            
+            // Vérifier si une session existe déjà
+            const hasValidSession = await checkExistingAuth();
+            if (hasValidSession) {
+                startSession();
+            }
+        });
+
+        // Empêcher le formulaire de se soumettre
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+            }
         });
     </script>
 </body>
