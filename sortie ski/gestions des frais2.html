@@ -149,12 +149,10 @@
         }
 
         .container {
-            max-width: 100%;
-            margin: 0;
-            padding: 15px;
-            flex: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
             width: 100%;
-            overflow-x: hidden;
         }
 
         .main-grid {
@@ -793,8 +791,8 @@
 
         let students = [];
         let currentSearch = '';
-        let isAuthenticated = false;
         let currentStudentId = null;
+        let authCode = '';
 
         // Fonctions utilitaires
         function formatCurrency(amount) {
@@ -805,7 +803,28 @@
             return savingsMap[total] || 0;
         }
 
-        // Gestion des données Firebase - SIMPLIFIÉE
+        // Fonction pour vérifier l'authentification avec Firebase
+        function checkFirebaseAuth(code) {
+            document.getElementById('loadingData').style.display = 'block';
+            
+            // On essaye de lire une donnée pour vérifier l'authentification
+            const testRef = database.ref('students');
+            
+            return testRef.limitToLast(1).once('value')
+                .then(() => {
+                    // Si on arrive ici, l'authentification a réussi
+                    authCode = code;
+                    document.getElementById('loadingData').style.display = 'none';
+                    return true;
+                })
+                .catch((error) => {
+                    document.getElementById('loadingData').style.display = 'none';
+                    console.error('Erreur Firebase:', error);
+                    return false;
+                });
+        }
+
+        // Gestion des données Firebase
         function loadStudents() {
             document.getElementById('loadingData').style.display = 'block';
             
@@ -831,15 +850,7 @@
                 .catch((error) => {
                     console.error('Erreur de chargement:', error);
                     document.getElementById('loadingData').style.display = 'none';
-                    
-                    // Si erreur de permission, vérifier l'authentification
-                    if (error.code === 'PERMISSION_DENIED') {
-                        alert('Accès refusé. Le code est incorrect ou les règles Firebase sont mal configurées.');
-                        showAuthScreen();
-                    } else {
-                        alert('Erreur de chargement des données: ' + error.message);
-                    }
-                    
+                    alert('Erreur de chargement des données: ' + error.message);
                     students = [];
                     return [];
                 });
@@ -863,10 +874,7 @@
             })
             .catch((error) => {
                 console.error('Erreur d\'ajout:', error);
-                if (error.code === 'PERMISSION_DENIED') {
-                    alert('Accès refusé. Votre session a expiré.');
-                    showAuthScreen();
-                }
+                alert('Erreur lors de l\'ajout: ' + error.message);
                 throw error;
             });
         }
@@ -886,10 +894,7 @@
             .then(() => loadStudents())
             .catch((error) => {
                 console.error('Erreur de mise à jour:', error);
-                if (error.code === 'PERMISSION_DENIED') {
-                    alert('Accès refusé. Votre session a expiré.');
-                    showAuthScreen();
-                }
+                alert('Erreur lors de la mise à jour: ' + error.message);
                 throw error;
             });
         }
@@ -901,10 +906,7 @@
                 .then(() => loadStudents())
                 .catch((error) => {
                     console.error('Erreur de suppression:', error);
-                    if (error.code === 'PERMISSION_DENIED') {
-                        alert('Accès refusé. Votre session a expiré.');
-                        showAuthScreen();
-                    }
+                    alert('Erreur lors de la suppression: ' + error.message);
                     throw error;
                 });
         }
@@ -1017,9 +1019,7 @@
                         resetForm();
                     })
                     .catch(error => {
-                        if (error.code !== 'PERMISSION_DENIED') {
-                            alert('Erreur lors de la mise à jour');
-                        }
+                        console.error('Erreur:', error);
                     });
             } else {
                 saveStudentToFirebase(student)
@@ -1027,9 +1027,7 @@
                         resetForm();
                     })
                     .catch(error => {
-                        if (error.code !== 'PERMISSION_DENIED') {
-                            alert('Erreur lors de l\'ajout');
-                        }
+                        console.error('Erreur:', error);
                     });
             }
         }
@@ -1053,9 +1051,7 @@
             if (confirm('Supprimer cet élève ?')) {
                 deleteStudentFromFirebase(studentId)
                     .catch(error => {
-                        if (error.code !== 'PERMISSION_DENIED') {
-                            alert('Erreur lors de la suppression');
-                        }
+                        console.error('Erreur:', error);
                     });
             }
         }
@@ -1099,16 +1095,7 @@
             link.click();
         }
 
-        // Fonction pour montrer l'écran d'authentification
-        function showAuthScreen() {
-            document.getElementById('authOverlay').style.display = 'flex';
-            document.getElementById('appContainer').style.display = 'none';
-            isAuthenticated = false;
-            document.getElementById('authCode').value = '';
-            document.getElementById('authCode').focus();
-        }
-
-        // Gestion de l'authentification SIMPLIFIÉE et FONCTIONNELLE
+        // Gestion de l'authentification SIMPLIFIÉE
         function handleAuth() {
             const codeInput = document.getElementById('authCode');
             const errorDiv = document.getElementById('authError');
@@ -1120,19 +1107,46 @@
                 return;
             }
             
-            // SIMPLE vérification du code
+            // Vérifier d'abord le code côté client
             if (code === SECRET_CODE) {
-                codeInput.classList.remove('error');
-                errorDiv.textContent = '';
-                isAuthenticated = true;
-                
-                // CACHER l'écran d'authentification
-                document.getElementById('authOverlay').style.display = 'none';
-                // MONTRER l'application
-                document.getElementById('appContainer').style.display = 'flex';
-                
-                // Charger les données
-                loadStudents();
+                // Tester la connexion Firebase
+                checkFirebaseAuth(code)
+                    .then((success) => {
+                        if (success) {
+                            // SUCCÈS : cacher l'overlay et montrer l'application
+                            codeInput.classList.remove('error');
+                            errorDiv.textContent = '';
+                            authCode = code;
+                            
+                            document.getElementById('authOverlay').style.display = 'none';
+                            document.getElementById('appContainer').style.display = 'flex';
+                            
+                            // Charger les données
+                            loadStudents();
+                        } else {
+                            // Firebase a échoué mais le code est bon - on peut quand même continuer
+                            codeInput.classList.remove('error');
+                            errorDiv.textContent = '';
+                            authCode = code;
+                            
+                            document.getElementById('authOverlay').style.display = 'none';
+                            document.getElementById('appContainer').style.display = 'flex';
+                            
+                            // Avertir l'utilisateur
+                            alert('Note: La connexion Firebase a échoué. Les données seront sauvegardées localement.');
+                            updateStudentList();
+                        }
+                    })
+                    .catch(() => {
+                        codeInput.classList.remove('error');
+                        errorDiv.textContent = '';
+                        authCode = code;
+                        
+                        document.getElementById('authOverlay').style.display = 'none';
+                        document.getElementById('appContainer').style.display = 'flex';
+                        
+                        updateStudentList();
+                    });
             } else {
                 codeInput.classList.add('error');
                 errorDiv.textContent = 'Code incorrect';
