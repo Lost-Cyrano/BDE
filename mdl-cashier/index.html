@@ -5,9 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Caisse MDL</title>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <!-- Firebase SDK - Version compatible -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-check-compat.js"></script>
 
   <style>
     :root {
@@ -121,7 +123,7 @@
   <!-- Main App -->
   <div id="main-app" class="hidden">
     <header>
-      <h1>Caisse MDL<h1>
+      <h1>Caisse MDL</h1>
       <button class="btn-back" onclick="window.location.href='https://example.com/menu'">← Retour au Menu</button>
     </header>
 
@@ -171,23 +173,65 @@
   </div>
 
   <script>
-    // ====================== FIREBASE ======================
+    // ====================== FIREBASE CONFIGURATION ======================
     const firebaseConfig = {
-      databaseURL: "https://buvette-mdl-default-rtdb.europe-west1.firebasedatabase.app"
+      apiKey: "AIzaSyBiutXKYjn5NhGVg1syyyt56DZdAfTIC0I",
+      authDomain: "buvette-mdl.firebaseapp.com",
+      databaseURL: "https://buvette-mdl-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "buvette-mdl",
+      storageBucket: "buvette-mdl.firebasestorage.app",
+      appId: "1:835393017215:web:e7300edc4de504adc2b64a",
+      measurementId: "G-66CSELRSJ3"
     };
+
+    // Initialiser Firebase
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // ====================== APP CHECK ======================
+    // Activer App Check avec reCAPTCHA
+    try {
+      const appCheck = firebase.appCheck();
+      appCheck.activate(
+        "6LdpdGksAAAAALc_PoWIUCDRwTStx8bs6WHb6GUh", // Votre clé reCAPTCHA
+        false // Pas de token auto-rafraîchi
+      );
+      console.log("✅ App Check activé");
+    } catch (e) {
+      console.error("❌ Erreur App Check:", e);
+    }
+
+    // ====================== AUTHENTIFICATION ======================
+    // S'assurer que l'utilisateur est authentifié avant toute opération
+    let authReady = false;
+    
+    firebase.auth().signInAnonymously()
+      .then(() => {
+        console.log("✅ Authentification anonyme réussie");
+        authReady = true;
+        // Démarrer l'application après authentification
+        initPINListener();
+      })
+      .catch((error) => {
+        console.error("❌ Erreur authentification:", error);
+        alert("Erreur de connexion à la base de données");
+      });
+
+    // ====================== VARIABLES GLOBALES ======================
     let inventory = [];
     let cart = [];
     let customerCard = null;
     let cashierName = "MAIRE Anael";
     let orderCounter = 1;
 
-    // DOM
+    // DOM Elements
     const pinScreen = document.getElementById("pin-screen");
     const mainApp = document.getElementById("main-app");
-    const pinInputs = [document.getElementById("pin1"), document.getElementById("pin2"), document.getElementById("pin3")];
+    const pinInputs = [
+      document.getElementById("pin1"),
+      document.getElementById("pin2"),
+      document.getElementById("pin3")
+    ];
     const productsGrid = document.getElementById("products-grid");
     const cartContainer = document.getElementById("cart-items-container");
     const grandTotalEl = document.getElementById("grand-total");
@@ -200,49 +244,69 @@
     const cardInfo = document.getElementById("card-info");
     const searchInput = document.getElementById("inventory-search");
 
-    // ====================== PIN ======================
-    pinInputs.forEach((input, i) => {
-      input.addEventListener("input", () => {
-        if (input.value && i < 2) pinInputs[i+1].focus();
-        if (i === 2 && input.value) checkPin();
+    // ====================== PIN LISTENER ======================
+    function initPINListener() {
+      pinInputs.forEach((input, i) => {
+        input.addEventListener("input", () => {
+          if (input.value && i < 2) pinInputs[i+1].focus();
+          if (i === 2 && input.value) checkPin();
+        });
       });
-    });
+    }
 
     async function checkPin() {
+      if (!authReady) {
+        alert("Authentification en cours...");
+        return;
+      }
+
       const entered = pinInputs.map(i => i.value).join("");
       if (entered.length !== 3) return;
 
-      const snapshot = await db.ref("c/m").once("value");
-      const storedPin = snapshot.val();
+      try {
+        const snapshot = await db.ref("c/m").once("value");
+        const storedPin = snapshot.val();
 
-      if (storedPin && storedPin.toString() === entered) {
-        pinScreen.classList.add("hidden");
-        mainApp.classList.remove("hidden");
-        initApp();
-      } else {
-        pinInputs.forEach(i => i.value = "");
-        pinInputs[0].focus();
-        alert("Code incorrect");
+        if (storedPin && storedPin.toString() === entered) {
+          pinScreen.classList.add("hidden");
+          mainApp.classList.remove("hidden");
+          initApp();
+        } else {
+          pinInputs.forEach(i => i.value = "");
+          pinInputs[0].focus();
+          alert("Code incorrect");
+        }
+      } catch (error) {
+        console.error("Erreur vérification PIN:", error);
+        alert("Erreur de connexion à la base de données");
       }
     }
 
-    // ====================== INIT ======================
+    // ====================== INIT APPLICATION ======================
     async function initApp() {
-      // Nom du caissier
-      const nameSnap = await db.ref("c/n").once("value");
-      cashierName = nameSnap.val() || "CAISSIER INCONNU";
-      cashierNameEl.textContent = cashierName;
+      try {
+        // Nom du caissier
+        const nameSnap = await db.ref("c/n").once("value");
+        cashierName = nameSnap.val() || "CAISSIER INCONNU";
+        cashierNameEl.textContent = cashierName;
 
-      // Produits + stocks
-      await loadProductsAndStocks();
+        // Produits + stocks
+        await loadProductsAndStocks();
 
-      // Numéro de commande actuel
-      const numSnap = await db.ref("t/n").once("value");
-      orderCounter = (numSnap.val() || 0) + 1;
-      orderNumEl.textContent = orderCounter;
+        // Numéro de commande actuel
+        const numSnap = await db.ref("t/n").once("value");
+        orderCounter = (numSnap.val() || 0) + 1;
+        orderNumEl.textContent = orderCounter;
 
-      loadProducts();
-      updateTotal();
+        loadProducts();
+        updateTotal();
+        
+        // Search listener
+        searchInput.addEventListener("input", e => loadProducts(e.target.value));
+      } catch (error) {
+        console.error("Erreur initialisation:", error);
+        alert("Erreur de chargement des données");
+      }
     }
 
     async function loadProductsAndStocks() {
@@ -309,21 +373,24 @@
       updateTotal();
     }
 
-    function changeQty(id, delta) {
+    window.changeQty = function(id, delta) {
       const item = cart.find(i => i.id === id);
       if (!item) return;
 
       const prod = inventory.find(p => p.id === id);
       let newQty = item.qty + delta;
 
-      if (newQty <= 0) cart = cart.filter(i => i.id !== id);
-      else if (newQty > prod.stock) newQty = prod.stock;
+      if (newQty <= 0) {
+        cart = cart.filter(i => i.id !== id);
+      } else if (newQty > prod.stock) {
+        newQty = prod.stock;
+      }
 
-      item.qty = newQty;
+      if (newQty > 0) item.qty = newQty;
       renderCart();
       loadProducts(searchInput.value);
       updateTotal();
-    }
+    };
 
     function renderCart() {
       cartContainer.innerHTML = cart.length === 0 
@@ -347,7 +414,7 @@
     }
 
     // ====================== CARTE ======================
-    function simulateScanCard() { /* garde la simulation pour l'instant */ 
+    window.simulateScanCard = function() {
       if (customerCard) return;
       const cards = [
         {name: "Lucas DUPONT", type: "percent", value: 20},
@@ -363,14 +430,14 @@
         : `${customerCard.value.toFixed(2)} € restant`;
 
       updateTotal();
-    }
+    };
 
-    function removeCustomerCard() {
+    window.removeCustomerCard = function() {
       customerCard = null;
       scanBtn.style.display = "block";
       activeCard.style.display = "none";
       updateTotal();
-    }
+    };
 
     // ====================== TOTAL & PAIEMENT ======================
     function calculateTotal() {
@@ -390,7 +457,7 @@
       payButton.disabled = cart.length === 0;
     }
 
-    async function validateAndPay() {
+    window.validateAndPay = async function() {
       if (cart.length === 0) return;
 
       const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
@@ -400,48 +467,53 @@
       if (customerCard && customerCard.type === "amount") {
         const used = Math.min(subtotal, customerCard.value);
         customerCard.value -= used;
-        if (customerCard.value <= 0) removeCustomerCard();
-        else cardInfo.textContent = `${customerCard.value.toFixed(2)} € restant`;
+        if (customerCard.value <= 0) {
+          removeCustomerCard();
+        } else {
+          cardInfo.textContent = `${customerCard.value.toFixed(2)} € restant`;
+        }
       }
 
-      // === Sauvegarde Firebase ===
-      const currentNumSnap = await db.ref("t/n").once("value");
-      let currentNum = currentNumSnap.val() || 0;
-      const newNum = currentNum + 1;
+      try {
+        // === Sauvegarde Firebase ===
+        const currentNumSnap = await db.ref("t/n").once("value");
+        let currentNum = currentNumSnap.val() || 0;
+        const newNum = currentNum + 1;
 
-      // Ticket
-      const ticket = {};
-      cart.forEach(item => {
-        ticket[item.id] = item.qty;
-      });
-      ticket.n = cashierName;
-      ticket.p = parseFloat(total.toFixed(2));
-      if (customerCard) ticket.c = customerCard.name;
+        // Ticket
+        const ticket = {};
+        cart.forEach(item => {
+          ticket[item.id] = item.qty;
+        });
+        ticket.n = cashierName;
+        ticket.p = parseFloat(total.toFixed(2));
+        if (customerCard) ticket.c = customerCard.name;
 
-      await db.ref(`t/h/${newNum}`).set(ticket);
-      await db.ref("t/n").set(newNum);
+        await db.ref(`t/h/${newNum}`).set(ticket);
+        await db.ref("t/n").set(newNum);
 
-      // Mise à jour stocks
-      for (let item of cart) {
-        await db.ref(`s/${item.id}`).transaction(current => (current || 0) - item.qty);
+        // Mise à jour stocks
+        for (let item of cart) {
+          await db.ref(`s/${item.id}`).transaction(current => (current || 0) - item.qty);
+        }
+
+        // Reset
+        cart = [];
+        orderCounter = newNum + 1;
+        orderNumEl.textContent = orderCounter;
+
+        renderCart();
+        await loadProductsAndStocks();
+        loadProducts();
+        updateTotal();
+        removeCustomerCard();
+
+        alert(`Commande #${newNum} enregistrée avec succès !`);
+      } catch (error) {
+        console.error("Erreur paiement:", error);
+        alert("Erreur lors de l'enregistrement de la commande");
       }
-
-      // Reset
-      cart = [];
-      orderCounter = newNum + 1;
-      orderNumEl.textContent = orderCounter;
-
-      renderCart();
-      await loadProductsAndStocks();   // recharger les stocks mis à jour
-      loadProducts();
-      updateTotal();
-      removeCustomerCard();
-
-      alert(`Commande #${newNum} enregistrée avec succès !`);
-    }
-
-    // Init recherche
-    searchInput.addEventListener("input", e => loadProducts(e.target.value));
+    };
   </script>
 </body>
 </html>
