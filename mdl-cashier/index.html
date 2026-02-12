@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Caisse MDL</title>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #1d4ed8;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --gray: #6b7280;
+      --light: #f9fafb;
+      --dark: #1f2937;
+      --card-bg: #fffbeb;
+      --card-border: #fde047;
+      --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+    }
+
+    * { box-sizing: border-box; margin:0; padding:0; }
+    html, body { height: 100%; overflow: hidden; font-family: system-ui, -apple-system, sans-serif; background: var(--light); color: var(--dark); }
+
+    #pin-screen { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; text-align: center; }
+    #pin-screen.hidden { display: none; }
+
+    .pin-input { display: flex; gap: 16px; margin: 2rem 0; }
+    .pin-input input { width: 70px; height: 80px; font-size: 2.5rem; text-align: center; border: 2px solid white; border-radius: 12px; background: rgba(255,255,255,0.2); color: white; }
+
+    #main-app { height: 100%; display: flex; flex-direction: column; }
+    #main-app.hidden { display: none; }
+
+    header { background: var(--primary); color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; box-shadow: var(--shadow); }
+
+    .btn-back { background: rgba(255,255,255,0.25); border: none; color: white; padding: 8px 16px; border-radius: 8px; font-size: 1rem; cursor: pointer; }
+    .btn-back:hover { background: rgba(255,255,255,0.35); }
+
+    .main-content { flex: 1; display: grid; grid-template-columns: 2fr 3fr; gap: 0; overflow: hidden; }
+
+    .left-panel, .right-panel { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+    .left-panel { background: white; border-right: 1px solid #e5e7eb; }
+    .right-panel { background: white; }
+
+    .section-header { background: #f3f4f6; padding: 12px 16px; font-weight: 600; font-size: 1.1rem; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
+
+    #search-container { padding: 12px 16px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
+    #inventory-search { width: 100%; padding: 10px 14px; font-size: 1rem; border: 1px solid #d1d5db; border-radius: 8px; }
+
+    #products-grid { flex: 1; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+
+    .product-btn {
+      border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; background: white; text-align: center;
+      cursor: pointer; transition: all 0.15s; height: 170px; display: flex; flex-direction: column; box-shadow: var(--shadow);
+    }
+    .product-btn:hover:not(.out-of-stock) { transform: translateY(-3px); box-shadow: 0 8px 16px rgba(0,0,0,0.12); }
+    .product-btn img { width: 100%; height: 90px; object-fit: cover; }
+    .product-info { padding: 8px; flex: 1; }
+    .product-name { font-size: 0.95rem; font-weight: 600; }
+    .product-price { font-size: 1.05rem; color: var(--primary); font-weight: 700; }
+    .product-stock { font-size: 0.85rem; color: var(--gray); }
+
+    .out-of-stock { opacity: 0.6; cursor: not-allowed; background: #f9fafb; }
+    .selected { border: 3px solid var(--success); box-shadow: 0 0 0 4px rgba(34,197,94,0.2); }
+
+    #cart-header { display: flex; border-bottom: 1px solid #e5e7eb; }
+    #cart-title { flex: 3; padding: 12px 16px; font-weight: 600; font-size: 1.1rem; border-right: 1px solid #e5e7eb; background: #f3f4f6; }
+
+    #card-section {
+      flex: 1; padding: 12px 16px; background: var(--card-bg); border-bottom: 1px solid var(--card-border);
+      display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+    }
+
+    #scan-btn, .remove-card-btn { padding: 12px 20px; border-radius: 10px; font-size: 1.05rem; cursor: pointer; width: 100%; max-width: 220px; }
+    #scan-btn { background: var(--primary); color: white; border: none; }
+    .remove-card-btn { background: var(--danger); color: white; border: none; }
+
+    #active-card { width: 100%; display: none; flex-direction: column; gap: 10px; }
+    .card-owner { font-weight: 600; font-size: 1.1rem; }
+    .card-info-text { font-size: 1rem; color: var(--gray); }
+
+    #cart-items-container { flex: 1; overflow-y: auto; padding: 12px 16px; }
+
+    .cart-item { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; gap: 12px; }
+    .cart-item-name { flex: 1; font-size: 1rem; font-weight: 500; }
+    .qty-btn { width: 32px; height: 32px; border: 1px solid #d1d5db; border-radius: 6px; background: white; font-size: 1.1rem; cursor: pointer; }
+    .qty-btn.minus { color: var(--danger); }
+    .qty-btn.plus { color: var(--success); }
+    .cart-qty { width: 40px; text-align: center; font-weight: bold; }
+    .cart-item-total { min-width: 70px; text-align: right; font-weight: 600; color: var(--primary); }
+
+    .bottom-bar { padding: 12px 16px; background: #f3f4f6; border-top: 1px solid #e5e7eb; flex-shrink: 0; }
+    .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1rem; color: var(--gray); }
+    .total-row { background: #dbeafe; padding: 16px; border-radius: 10px; margin: 12px 0; text-align: center; }
+    .grand-total { font-size: 2.8rem; font-weight: 800; color: var(--primary-dark); }
+
+    .pay-btn {
+      background: var(--success); color: white; border: none; width: 100%; padding: 18px;
+      font-size: 1.5rem; font-weight: bold; border-radius: 10px; cursor: pointer;
+    }
+    .pay-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+  <!-- PIN -->
+  <div id="pin-screen">
+    <h1>Accès Caisse</h1>
+    <p>Entrez le code à 3 chiffres</p>
+    <div class="pin-input">
+      <input type="tel" maxlength="1" id="pin1" inputmode="numeric"/>
+      <input type="tel" maxlength="1" id="pin2" inputmode="numeric"/>
+      <input type="tel" maxlength="1" id="pin3" inputmode="numeric"/>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="main-app" class="hidden">
+    <header>
+      <h1>Caisse MDL<h1>
+      <button class="btn-back" onclick="window.location.href='https://example.com/menu'">← Retour au Menu</button>
+    </header>
+
+    <div class="main-content">
+      <!-- Stock -->
+      <div class="left-panel">
+        <div class="section-header">Stock</div>
+        <div id="search-container">
+          <input type="text" id="inventory-search" placeholder="Rechercher un produit..."/>
+        </div>
+        <div id="products-grid"></div>
+      </div>
+
+      <!-- Panier -->
+      <div class="right-panel">
+        <div id="cart-header">
+          <div id="cart-title">Panier Actuel</div>
+          <div id="card-section">
+            <button id="scan-btn" onclick="simulateScanCard()">Scanner une carte</button>
+            <div id="active-card">
+              <div class="card-owner" id="card-owner"></div>
+              <div class="card-info-text" id="card-info"></div>
+              <button class="remove-card-btn" onclick="removeCustomerCard()">Supprimer carte</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="cart-items-container"></div>
+
+        <div class="bottom-bar">
+          <div class="info-row">
+            <div><strong>Caissier :</strong> <span id="cashier-name">Chargement...</span></div>
+            <div><strong>Commande n° :</strong> <span id="order-number">1</span></div>
+          </div>
+
+          <div class="total-row">
+            <div class="total-label">Prix Total TC :</div>
+            <div class="grand-total" id="grand-total">0,00 €</div>
+          </div>
+
+          <button class="pay-btn" id="pay-button" onclick="validateAndPay()" disabled>
+            Commande Payée et Livrée
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ====================== FIREBASE ======================
+    const firebaseConfig = {
+      databaseURL: "https://buvette-mdl-default-rtdb.europe-west1.firebasedatabase.app"
+    };
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let inventory = [];
+    let cart = [];
+    let customerCard = null;
+    let cashierName = "MAIRE Anael";
+    let orderCounter = 1;
+
+    // DOM
+    const pinScreen = document.getElementById("pin-screen");
+    const mainApp = document.getElementById("main-app");
+    const pinInputs = [document.getElementById("pin1"), document.getElementById("pin2"), document.getElementById("pin3")];
+    const productsGrid = document.getElementById("products-grid");
+    const cartContainer = document.getElementById("cart-items-container");
+    const grandTotalEl = document.getElementById("grand-total");
+    const payButton = document.getElementById("pay-button");
+    const orderNumEl = document.getElementById("order-number");
+    const cashierNameEl = document.getElementById("cashier-name");
+    const scanBtn = document.getElementById("scan-btn");
+    const activeCard = document.getElementById("active-card");
+    const cardOwner = document.getElementById("card-owner");
+    const cardInfo = document.getElementById("card-info");
+    const searchInput = document.getElementById("inventory-search");
+
+    // ====================== PIN ======================
+    pinInputs.forEach((input, i) => {
+      input.addEventListener("input", () => {
+        if (input.value && i < 2) pinInputs[i+1].focus();
+        if (i === 2 && input.value) checkPin();
+      });
+    });
+
+    async function checkPin() {
+      const entered = pinInputs.map(i => i.value).join("");
+      if (entered.length !== 3) return;
+
+      const snapshot = await db.ref("c/m").once("value");
+      const storedPin = snapshot.val();
+
+      if (storedPin && storedPin.toString() === entered) {
+        pinScreen.classList.add("hidden");
+        mainApp.classList.remove("hidden");
+        initApp();
+      } else {
+        pinInputs.forEach(i => i.value = "");
+        pinInputs[0].focus();
+        alert("Code incorrect");
+      }
+    }
+
+    // ====================== INIT ======================
+    async function initApp() {
+      // Nom du caissier
+      const nameSnap = await db.ref("c/n").once("value");
+      cashierName = nameSnap.val() || "CAISSIER INCONNU";
+      cashierNameEl.textContent = cashierName;
+
+      // Produits + stocks
+      await loadProductsAndStocks();
+
+      // Numéro de commande actuel
+      const numSnap = await db.ref("t/n").once("value");
+      orderCounter = (numSnap.val() || 0) + 1;
+      orderNumEl.textContent = orderCounter;
+
+      loadProducts();
+      updateTotal();
+    }
+
+    async function loadProductsAndStocks() {
+      try {
+        const res = await fetch("./products/list.json");
+        const data = await res.json();
+
+        inventory = data.map(item => ({
+          id: item["firebase-link"],
+          name: item.name,
+          price: parseFloat(item.price),
+          image: item.image,
+          stock: 0
+        }));
+
+        // Charger les stocks
+        for (let prod of inventory) {
+          const snap = await db.ref(`s/${prod.id}`).once("value");
+          prod.stock = snap.val() || 0;
+        }
+      } catch (e) {
+        console.error("Erreur chargement produit.json", e);
+        alert("Impossible de charger les produits (produit.json manquant ?)");
+      }
+    }
+
+    function loadProducts(filter = "") {
+      productsGrid.innerHTML = "";
+      const term = filter.toLowerCase();
+
+      inventory.forEach(p => {
+        if (term && !p.name.toLowerCase().includes(term)) return;
+
+        const btn = document.createElement("button");
+        btn.className = "product-btn";
+        if (p.stock <= 0) btn.classList.add("out-of-stock");
+        if (cart.some(item => item.id === p.id)) btn.classList.add("selected");
+
+        btn.innerHTML = `
+          <img src="${p.image}" alt="${p.name}" loading="lazy">
+          <div class="product-info">
+            <div class="product-name">${p.name}</div>
+            <div class="product-price">${p.price.toFixed(2)} €</div>
+            <div class="product-stock">${p.stock} restant</div>
+          </div>
+        `;
+
+        if (p.stock > 0) btn.onclick = () => addToCart(p);
+        productsGrid.appendChild(btn);
+      });
+    }
+
+    // ====================== PANIER ======================
+    function addToCart(product) {
+      let item = cart.find(i => i.id === product.id);
+      if (item) {
+        if (item.qty >= product.stock) return;
+        item.qty++;
+      } else {
+        cart.push({ id: product.id, name: product.name, price: product.price, qty: 1 });
+      }
+      renderCart();
+      loadProducts(searchInput.value);
+      updateTotal();
+    }
+
+    function changeQty(id, delta) {
+      const item = cart.find(i => i.id === id);
+      if (!item) return;
+
+      const prod = inventory.find(p => p.id === id);
+      let newQty = item.qty + delta;
+
+      if (newQty <= 0) cart = cart.filter(i => i.id !== id);
+      else if (newQty > prod.stock) newQty = prod.stock;
+
+      item.qty = newQty;
+      renderCart();
+      loadProducts(searchInput.value);
+      updateTotal();
+    }
+
+    function renderCart() {
+      cartContainer.innerHTML = cart.length === 0 
+        ? '<div style="text-align:center; padding:40px; color:#888;">Panier vide</div>'
+        : "";
+
+      cart.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "cart-item";
+        div.innerHTML = `
+          <div class="cart-item-name">${item.name}</div>
+          <div class="cart-qty-controls">
+            <button class="qty-btn minus" onclick="changeQty('${item.id}', -1)">−</button>
+            <span class="cart-qty">${item.qty}</span>
+            <button class="qty-btn plus" onclick="changeQty('${item.id}', 1)">+</button>
+          </div>
+          <div class="cart-item-total">${(item.price * item.qty).toFixed(2)} €</div>
+        `;
+        cartContainer.appendChild(div);
+      });
+    }
+
+    // ====================== CARTE ======================
+    function simulateScanCard() { /* garde la simulation pour l'instant */ 
+      if (customerCard) return;
+      const cards = [
+        {name: "Lucas DUPONT", type: "percent", value: 20},
+        {name: "Emma MARTIN",  type: "amount",  value: 10}
+      ];
+      customerCard = cards[Math.floor(Math.random()*cards.length)];
+
+      scanBtn.style.display = "none";
+      activeCard.style.display = "flex";
+      cardOwner.textContent = customerCard.name;
+      cardInfo.textContent = customerCard.type === "percent" 
+        ? `− ${customerCard.value}%` 
+        : `${customerCard.value.toFixed(2)} € restant`;
+
+      updateTotal();
+    }
+
+    function removeCustomerCard() {
+      customerCard = null;
+      scanBtn.style.display = "block";
+      activeCard.style.display = "none";
+      updateTotal();
+    }
+
+    // ====================== TOTAL & PAIEMENT ======================
+    function calculateTotal() {
+      let subtotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+      if (!customerCard) return subtotal;
+
+      if (customerCard.type === "percent") {
+        return subtotal * (1 - customerCard.value / 100);
+      } else {
+        return Math.max(0, subtotal - customerCard.value);
+      }
+    }
+
+    function updateTotal() {
+      const total = calculateTotal();
+      grandTotalEl.textContent = total.toFixed(2) + " €";
+      payButton.disabled = cart.length === 0;
+    }
+
+    async function validateAndPay() {
+      if (cart.length === 0) return;
+
+      const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+      let total = calculateTotal();
+
+      // Mise à jour carte à solde
+      if (customerCard && customerCard.type === "amount") {
+        const used = Math.min(subtotal, customerCard.value);
+        customerCard.value -= used;
+        if (customerCard.value <= 0) removeCustomerCard();
+        else cardInfo.textContent = `${customerCard.value.toFixed(2)} € restant`;
+      }
+
+      // === Sauvegarde Firebase ===
+      const currentNumSnap = await db.ref("t/n").once("value");
+      let currentNum = currentNumSnap.val() || 0;
+      const newNum = currentNum + 1;
+
+      // Ticket
+      const ticket = {};
+      cart.forEach(item => {
+        ticket[item.id] = item.qty;
+      });
+      ticket.n = cashierName;
+      ticket.p = parseFloat(total.toFixed(2));
+      if (customerCard) ticket.c = customerCard.name;
+
+      await db.ref(`t/h/${newNum}`).set(ticket);
+      await db.ref("t/n").set(newNum);
+
+      // Mise à jour stocks
+      for (let item of cart) {
+        await db.ref(`s/${item.id}`).transaction(current => (current || 0) - item.qty);
+      }
+
+      // Reset
+      cart = [];
+      orderCounter = newNum + 1;
+      orderNumEl.textContent = orderCounter;
+
+      renderCart();
+      await loadProductsAndStocks();   // recharger les stocks mis à jour
+      loadProducts();
+      updateTotal();
+      removeCustomerCard();
+
+      alert(`Commande #${newNum} enregistrée avec succès !`);
+    }
+
+    // Init recherche
+    searchInput.addEventListener("input", e => loadProducts(e.target.value));
+  </script>
+</body>
+</html>
