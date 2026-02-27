@@ -2,617 +2,482 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ScanMaster - Scanner de codes-barres</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Scan Express · Code‑barres</title>
     <style>
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
         }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f0f2f5;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: #f4f6f9;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 12px;
         }
-
         .container {
+            max-width: 480px;
             width: 100%;
-            max-width: 400px;
             background: white;
-            border-radius: 32px;
+            border-radius: 32px 32px 28px 28px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             overflow: hidden;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 24px 20px 32px;
+            transition: all 0.2s;
         }
-
-        .header {
-            background: #2c3e50;
-            color: white;
-            padding: 24px 20px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 28px;
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: #0b2b44;
             margin-bottom: 8px;
-            font-weight: 600;
+            padding-left: 4px;
         }
-
-        .header p {
-            font-size: 14px;
-            opacity: 0.9;
+        .sub {
+            color: #4a5f73;
+            margin-bottom: 24px;
+            font-size: 1rem;
+            padding-left: 4px;
+            border-left: 3px solid #3498db;
+            padding-left: 12px;
         }
-
-        .main-content {
-            padding: 20px;
+        .scan-area {
+            background: #eef2f7;
+            border-radius: 36px;
+            padding: 30px 16px;
+            text-align: center;
+            margin-bottom: 28px;
+            border: 2px dashed #b2c9de;
+            transition: border 0.2s, background 0.2s;
+            min-height: 220px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
-
-        /* Bouton de scan */
-        .scan-button {
-            background: #3498db;
-            color: white;
+        .scan-area.scanning {
+            background: #1a1e2b;
+            border-color: #3498db;
+            border-style: solid;
+            padding: 8px 8px;
+        }
+        #scanner-btn {
+            background: #0b2b44;
             border: none;
+            color: white;
+            font-size: 1.6rem;
+            font-weight: 500;
+            padding: 18px 18px;
             border-radius: 60px;
-            padding: 20px;
-            font-size: 20px;
-            font-weight: 600;
             width: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
+            box-shadow: 0 10px 18px rgba(11,43,68,0.25);
             cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 8px 16px rgba(52,152,219,0.3);
-            margin-bottom: 20px;
+            transition: 0.15s;
+            margin-bottom: 8px;
+            border: 1px solid #154a6e;
         }
-
-        .scan-button:active {
-            transform: scale(0.98);
-            background: #2980b9;
+        #scanner-btn:active {
+            transform: scale(0.97);
+            background: #0a1f30;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
-
-        .scan-button.scanning {
-            background: #e74c3c;
-            box-shadow: 0 8px 16px rgba(231,76,60,0.3);
+        #scanner-btn:disabled {
+            opacity: 0.5;
+            transform: none;
+            pointer-events: none;
+            background: #5f7d9c;
         }
-
-        /* Zone du scanner */
-        .scanner-wrapper {
+        .btn-icon {
+            font-size: 2rem;
+            line-height: 1;
+        }
+        #video-container {
             width: 100%;
-            aspect-ratio: 1;
-            background: #000;
-            border-radius: 24px;
+            border-radius: 28px;
             overflow: hidden;
+            background: black;
             position: relative;
-            margin-bottom: 20px;
             display: none;
+            margin-bottom: 12px;
         }
-
-        .scanner-wrapper.active {
+        #video-container.active {
             display: block;
         }
-
         #video {
             width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .scan-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 24px;
-        }
-
-        .scan-corner {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            border-color: #3498db;
-            border-style: solid;
-            border-width: 0;
-        }
-
-        .corner-tl {
-            top: 20px;
-            left: 20px;
-            border-top-width: 4px;
-            border-left-width: 4px;
-        }
-
-        .corner-tr {
-            top: 20px;
-            right: 20px;
-            border-top-width: 4px;
-            border-right-width: 4px;
-        }
-
-        .corner-bl {
-            bottom: 20px;
-            left: 20px;
-            border-bottom-width: 4px;
-            border-left-width: 4px;
-        }
-
-        .corner-br {
-            bottom: 20px;
-            right: 20px;
-            border-bottom-width: 4px;
-            border-right-width: 4px;
-        }
-
-        .scan-line-anim {
-            position: absolute;
-            left: 10%;
-            right: 10%;
-            height: 2px;
-            background: #3498db;
-            animation: scanMove 2s linear infinite;
-            box-shadow: 0 0 10px #3498db;
-        }
-
-        @keyframes scanMove {
-            0% { top: 15%; }
-            50% { top: 85%; }
-            100% { top: 15%; }
-        }
-
-        .scan-hint {
-            position: absolute;
-            bottom: 15px;
-            left: 0;
-            right: 0;
-            text-align: center;
-            color: white;
-            font-size: 14px;
-            text-shadow: 0 2px 4px black;
-            background: rgba(0,0,0,0.5);
-            padding: 8px;
-        }
-
-        /* États */
-        .loading-state, .error-state, .result-state {
-            display: none;
-            padding: 20px;
-            border-radius: 20px;
-            margin: 20px 0;
-        }
-
-        .loading-state.active, .error-state.active, .result-state.active {
+            height: auto;
             display: block;
+            border-radius: 28px;
+            transform: scaleX(-1);  /* effet miroir : plus naturel */
         }
-
-        .loading-state {
-            background: #f8f9fa;
-            text-align: center;
-        }
-
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #e0e0e0;
-            border-top-color: #3498db;
-            border-radius: 50%;
-            margin: 10px auto;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .error-state {
-            background: #fee;
-            color: #c00;
-            text-align: center;
-            border-left: 4px solid #c00;
-        }
-
-        .result-state {
-            background: #f8f9fa;
-        }
-
-        .result-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .barcode-badge {
-            background: #2c3e50;
+        #stop-scan {
+            background: #e63946;
             color: white;
-            padding: 6px 12px;
-            border-radius: 30px;
-            font-family: monospace;
-            font-size: 14px;
-        }
-
-        .source-badge {
-            background: #3498db;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 30px;
-            font-size: 12px;
-        }
-
-        .result-name {
-            font-size: 22px;
+            border: none;
+            border-radius: 40px;
+            padding: 12px 20px;
             font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-
-        .result-brand {
-            color: #7f8c8d;
-            margin-bottom: 20px;
-        }
-
-        .result-details {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .detail-item {
-            display: flex;
-            padding: 8px 0;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .detail-label {
-            flex: 1;
-            color: #7f8c8d;
-            font-size: 14px;
-        }
-
-        .detail-value {
-            flex: 2;
-            color: #2c3e50;
-            font-weight: 500;
-            font-size: 14px;
-            text-align: right;
-        }
-
-        .sources-tabs {
-            display: flex;
-            gap: 8px;
-            margin: 15px 0;
-            overflow-x: auto;
-            padding: 5px 0;
-        }
-
-        .source-tab {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 30px;
-            padding: 8px 16px;
-            font-size: 13px;
-            white-space: nowrap;
-            cursor: pointer;
-        }
-
-        .source-tab.active {
-            background: #3498db;
-            color: white;
-            border-color: #3498db;
-        }
-
-        .new-scan-btn {
-            background: none;
-            border: 2px solid #3498db;
-            color: #3498db;
-            border-radius: 60px;
-            padding: 15px;
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 1.2rem;
             width: 100%;
-            margin-top: 20px;
+            margin-top: 12px;
             cursor: pointer;
-            transition: all 0.2s;
+            border: 1px solid #b71c2c;
+            transition: 0.15s;
         }
-
-        .new-scan-btn:active {
-            background: #3498db;
+        #stop-scan:active {
+            background: #b71c2c;
+        }
+        .info-panel {
+            background: #ffffff;
+            border-radius: 28px;
+            padding: 22px 18px;
+            box-shadow: inset 0 1px 4px #d0dbe8, 0 6px 14px rgba(0,10,20,0.08);
+            margin: 16px 0 18px;
+            word-break: break-word;
+        }
+        .info-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 14px;
+            color: #1f3a5f;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .info-content {
+            background: #f2f6fc;
+            border-radius: 22px;
+            padding: 18px 16px;
+            font-size: 1rem;
+            color: #102331;
+            max-height: 380px;
+            overflow-y: auto;
+            border: 1px solid #cbd6e4;
+        }
+        .info-content pre {
+            font-family: inherit;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        .error-msg {
+            background: #fee9e7;
+            border-left: 6px solid #c93e3e;
+            padding: 18px 14px;
+            border-radius: 22px;
+            font-weight: 500;
+            color: #7d2525;
+        }
+        .badge {
+            background: #2ecc71;
             color: white;
+            border-radius: 40px;
+            padding: 4px 16px;
+            font-size: 0.9rem;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        .note {
+            color: #3f5e7a;
+            font-size: 0.85rem;
+            text-align: center;
+            margin-top: 16px;
+            opacity: 0.75;
+        }
+        .debug-hint {
+            font-size: 0.8rem;
+            background: #eef3f9;
+            padding: 8px 16px;
+            border-radius: 30px;
+            color: #2f577b;
+        }
+        /* responsive perfect */
+        button {
+            -webkit-tap-highlight-color: transparent;
         }
     </style>
+    <!-- Bibliothèque de scan robuste : ZXing-js (version navigateur) -->
+    <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📱 ScanMaster</h1>
-            <p>Scannez n'importe quel code-barres</p>
+<div class="container">
+    <h1>📲 scan·code</h1>
+    <div class="sub">pointez, lisez, tout savoir</div>
+
+    <!-- zone dynamique scan / vidéo -->
+    <div class="scan-area" id="scanArea">
+        <div id="video-container">
+            <video id="video" playsinline></video>
         </div>
-
-        <div class="main-content">
-            <!-- Bouton de scan principal -->
-            <button class="scan-button" id="scanButton">
-                <span>📷</span> Scanner un article
-            </button>
-
-            <!-- Zone du scanner -->
-            <div class="scanner-wrapper" id="scannerWrapper">
-                <video id="video" playsinline></video>
-                <div class="scan-overlay"></div>
-                <div class="scan-corner corner-tl"></div>
-                <div class="scan-corner corner-tr"></div>
-                <div class="scan-corner corner-bl"></div>
-                <div class="scan-corner corner-br"></div>
-                <div class="scan-line-anim"></div>
-                <div class="scan-hint">Positionnez le code-barres dans le cadre</div>
-            </div>
-
-            <!-- États -->
-            <div class="loading-state" id="loadingState">
-                <div class="spinner"></div>
-                <p>Recherche du produit...</p>
-            </div>
-
-            <div class="error-state" id="errorState">
-                <p>❌ Aucun produit trouvé pour ce code-barres</p>
-            </div>
-
-            <div class="result-state" id="resultState">
-                <div class="result-header">
-                    <span class="barcode-badge" id="barcodeDisplay">Code: </span>
-                    <span class="source-badge" id="sourceDisplay">Source: </span>
-                </div>
-                <div class="result-name" id="productName"></div>
-                <div class="result-brand" id="productBrand"></div>
-                <div class="result-details" id="productDetails"></div>
-                
-                <!-- Sources alternatives -->
-                <div id="alternativeSources" style="display: none;">
-                    <div style="margin: 20px 0 10px; color: #7f8c8d;">Autres sources disponibles:</div>
-                    <div class="sources-tabs" id="sourcesTabs"></div>
-                </div>
-            </div>
-
-            <!-- Bouton nouveau scan (caché par défaut) -->
-            <button class="new-scan-btn" id="newScanBtn" style="display: none;">
-                ↺ Scanner un autre article
-            </button>
-        </div>
+        <button id="stop-scan" style="display: none;">⏹ Arrêter le scan</button>
     </div>
 
-    <!-- Librairie jsQR -->
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <!-- Bouton principal scanner -->
+    <button id="scanner-btn">
+        <span class="btn-icon">📷</span> Scanner un article
+    </button>
 
-    <script>
-        // Éléments DOM
-        const scanButton = document.getElementById('scanButton');
-        const scannerWrapper = document.getElementById('scannerWrapper');
-        const video = document.getElementById('video');
-        const loadingState = document.getElementById('loadingState');
-        const errorState = document.getElementById('errorState');
-        const resultState = document.getElementById('resultState');
-        const newScanBtn = document.getElementById('newScanBtn');
-        const barcodeDisplay = document.getElementById('barcodeDisplay');
-        const sourceDisplay = document.getElementById('sourceDisplay');
-        const productName = document.getElementById('productName');
-        const productBrand = document.getElementById('productBrand');
-        const productDetails = document.getElementById('productDetails');
-        const alternativeSources = document.getElementById('alternativeSources');
-        const sourcesTabs = document.getElementById('sourcesTabs');
+    <!-- Panneau d'affichage des infos -->
+    <div class="info-panel" id="infoPanel">
+        <div class="info-title">
+            <span>📦 Résultat</span>
+        </div>
+        <div class="info-content" id="infoContent">
+            <span class="debug-hint">En attente d’un scan...</span>
+        </div>
+    </div>
+    <div class="note">appuyez sur le bouton, autorisez la caméra · compatible courses, livres, etc.</div>
+</div>
 
-        // Variables d'état
-        let isScanning = false;
-        let videoStream = null;
-        let animationId = null;
-        let currentBarcode = '';
+<script>
+(function() {
+    // --- Éléments DOM ---
+    const scannerBtn = document.getElementById('scanner-btn');
+    const stopScanBtn = document.getElementById('stop-scan');
+    const videoContainer = document.getElementById('video-container');
+    const video = document.getElementById('video');
+    const scanArea = document.getElementById('scanArea');
+    const infoContent = document.getElementById('infoContent');
 
-        // Configuration des bases de données
-        const databases = [
-            {
-                id: 'food',
-                name: '🍔 Open Food Facts',
-                url: (barcode) => `https://world.openfoodfacts.org/api/v2/product/${barcode}.json`,
-                parser: (data) => {
-                    if (!data || data.status !== 1) return null;
-                    const p = data.product;
-                    return {
-                        name: p.product_name || 'Nom inconnu',
-                        brand: p.brands || 'Marque inconnue',
-                        details: [
-                            { label: '📦 Quantité', value: p.quantity || 'Non spécifié' },
-                            { label: '🏷️ Catégories', value: p.categories ? p.categories.split(',').slice(0,2).join(', ') : 'Non spécifié' },
-                            { label: '⭐ Nutri-Score', value: p.nutriscore_grade ? p.nutriscore_grade.toUpperCase() : 'Non spécifié' },
-                            { label: '🌍 Labels', value: p.labels ? p.labels.split(',').slice(0,2).join(', ') : 'Non spécifié' }
-                        ]
-                    };
-                }
-            },
-            {
-                id: 'beauty',
-                name: '💄 Open Beauty Facts',
-                url: (barcode) => `https://world.openbeautyfacts.org/api/v2/product/${barcode}.json`,
-                parser: (data) => {
-                    if (!data || data.status !== 1) return null;
-                    const p = data.product;
-                    return {
-                        name: p.product_name || 'Nom inconnu',
-                        brand: p.brands || 'Marque inconnue',
-                        details: [
-                            { label: '🧴 Type', value: p.categories ? p.categories.split(',')[0] : 'Non spécifié' },
-                            { label: '🏭 Marque', value: p.brands || 'Non spécifié' },
-                            { label: '✅ Labels', value: p.labels || 'Non spécifié' },
-                            { label: '📏 Contenance', value: p.quantity || 'Non spécifié' }
-                        ]
-                    };
-                }
-            },
-            {
-                id: 'product',
-                name: '📦 Open Product Facts',
-                url: (barcode) => `https://world.openproductfacts.org/api/v2/product/${barcode}.json`,
-                parser: (data) => {
-                    if (!data || data.status !== 1) return null;
-                    const p = data.product;
-                    return {
-                        name: p.product_name || 'Nom inconnu',
-                        brand: p.brands || 'Marque inconnue',
-                        details: [
-                            { label: '📋 Catégorie', value: p.categories || 'Non spécifié' },
-                            { label: '📦 Emballage', value: p.packaging || 'Non spécifié' },
-                            { label: '🌱 Eco-Score', value: p.ecoscore_grade ? p.ecoscore_grade.toUpperCase() : 'Non spécifié' },
-                            { label: '🌍 Origine', value: p.countries || 'Non spécifié' }
-                        ]
-                    };
-                }
-            }
-        ];
+    // --- États internes ---
+    let activeScanner = null;            // instance MultiFormatReader
+    let mediaStream = null;              // flux caméra à stopper
+    let isScanning = false;
 
-        // Arrêter le scan proprement
-        async function stopScanning() {
-            isScanning = false;
-            
-            if (animationId) {
-                cancelAnimationFrame(animationId);
-                animationId = null;
-            }
-            
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
-                videoStream = null;
-            }
-            
-            video.srcObject = null;
-            scannerWrapper.classList.remove('active');
-            scanButton.classList.remove('scanning');
-            scanButton.innerHTML = '<span>📷</span> Scanner un article';
+    // --- Fonction d'affichage des infos (ou erreur) ---
+    function displayResult(data, error = false) {
+        if (error) {
+            // message d'erreur explicite
+            infoContent.innerHTML = `<div class="error-msg">❌ ${data}</div>`;
+            return;
+        }
+        // data est un objet avec .code et .details (texte formaté)
+        let html = `<div class="badge">✅ code scanné : ${data.code}</div>`;
+        if (data.details && data.details !== '') {
+            html += `<pre>${data.details}</pre>`;
+        } else {
+            html += `<div class="error-msg">⚠️ Aucune information trouvée dans les bases gratuites.</div>`;
+        }
+        infoContent.innerHTML = html;
+    }
+
+    // --- Fonction pour tout arrêter (caméra + scanner) et réactiver bouton ---
+    function stopScanning() {
+        if (!isScanning) return;
+
+        // 1. Arrêter tous les flux video
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(track => track.stop());
+            mediaStream = null;
         }
 
-        // Démarrer le scan
-        async function startScanning() {
+        // 2. Nettoyer le scanner (détache la lecture)
+        if (activeScanner) {
             try {
-                // Réinitialiser l'interface
-                await stopScanning();
-                resultState.classList.remove('active');
-                errorState.classList.remove('active');
-                loadingState.classList.remove('active');
-                newScanBtn.style.display = 'none';
-                
-                // Demander l'accès à la caméra
-                videoStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
-                        facingMode: 'environment',
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    } 
-                });
-                
-                video.srcObject = videoStream;
-                scannerWrapper.classList.add('active');
-                scanButton.classList.add('scanning');
-                scanButton.innerHTML = '<span>⏹️</span> Arrêter le scan';
-                
-                // Attendre que la vidéo soit prête
-                await new Promise((resolve) => {
-                    video.onloadedmetadata = () => {
-                        video.play();
-                        resolve();
-                    };
-                });
-                
-                isScanning = true;
-                scanFrame();
-                
-            } catch (error) {
-                console.error('Erreur caméra:', error);
-                alert('Impossible d\'accéder à la caméra. Vérifiez les permissions.');
-                await stopScanning();
-            }
+                // @zxing n'a pas de méthode reset explicite, on se contente de lâcher la référence
+                activeScanner = null;
+            } catch (e) {}
         }
 
-        // Analyser les frames vidéo
-        function scanFrame() {
-            if (!isScanning) return;
-            
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const context = canvas.getContext('2d');
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                
-                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                const code = jsQR(imageData.data, canvas.width, canvas.height, {
-                    inversionAttempts: "dontInvert",
-                });
-                
-                if (code && code.data) {
-                    console.log('Code détecté:', code.data);
-                    handleDetectedBarcode(code.data);
-                    return;
-                }
-            }
-            
-            animationId = requestAnimationFrame(scanFrame);
-        }
+        // 3. Cacher la video, réinitialiser UI
+        videoContainer.classList.remove('active');
+        video.srcObject = null;
+        stopScanBtn.style.display = 'none';
+        scanArea.classList.remove('scanning');
+        isScanning = false;
+        scannerBtn.disabled = false;
+    }
 
-        // Gérer le code-barres détecté
-        async function handleDetectedBarcode(barcode) {
-            if (!isScanning) return;
-            
-            currentBarcode = barcode;
-            await stopScanning();
-            
-            // Afficher le chargement
-            loadingState.classList.add('active');
-            
-            // Rechercher dans toutes les bases de données
-            await searchAllDatabases(barcode);
-        }
+    // --- Interroger plusieurs bases (Open Food Facts + Open EAN/ISBN via upcdatabase? on utilise deux sources fiables)
+    async function fetchProductInfo(barcode) {
+        const code = barcode.trim();
+        // on utilise Open Food Facts (alimentaire / cosmétique / divers) ET un fallback Open EAN / ISBN via Google Books? mais on va utiliser aussi une autre API : https://world.openfoodfacts.org/ couvre beaucoup.
+        // Pour les livres, on utilisera Open Library (covers/ISBN) mais surtout Open Food Facts contient beaucoup de produits non alimentaires (cosmétiques, etc.)
+        // On fait deux appels parallèles avec gestion d'échec.
 
-        // Rechercher dans toutes les bases de données
-        async function searchAllDatabases(barcode) {
-            const results = [];
-            
-            for (const db of databases) {
-                try {
-                    const response = await fetch(db.url(barcode));
-                    const data = await response.json();
-                    const parsed = db.parser(data);
-                    
-                    if (parsed) {
-                        results.push({
-                            source: db.name,
-                            data: parsed
-                        });
-                    }
-                } catch (error) {
-                    console.log(`Erreur avec ${db.name}:`, error);
-                }
-            }
-            
-            loadingState.classList.remove('active');
-            
-            if (results.length > 0) {
-                displayResults(results, barcode);
+        const OFF_URL = `https://world.openfoodfacts.org/api/v2/product/${code}.json`;
+        // Deuxième source : Open EAN (gratuit, limité mais large) - on utilise le proxy public de upcdatabase? Non, préférons une source fiable comme Google Books pour les ISBN.
+        // Pour les codes non alimentaires (livres), on peut appeler Open Library (couverture livres) et extraire titre/auteur.
+        // On combine les promesses: on lance deux requêtes, et on fusionne.
+
+        const results = {
+            code: code,
+            details: ''
+        };
+
+        try {
+            // Requête 1: Open Food Facts (produits de grande conso, cosmétiques, boissons, etc.)
+            const offPromise = fetch(OFF_URL).then(res => res.ok ? res.json() : Promise.reject('OFF not found')).catch(() => null);
+
+            // Requête 2: Open Library (pour ISBN / livres) - si le code ressemble à un ISBN (10 ou 13 chiffres mais on tente systématiquement)
+            const olPromise = fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${code}&format=json&jscmd=data`).then(res => res.json()).catch(() => null);
+
+            // Requête 3 (bonus) : barcode lookups possible ? mais on s'arrête là, on veut gratuit et fiable. Ajout d'un autre endpoint : https://api.upcitemdb.com (mais nécessite api key) laisser tomber pour éviter les bugs. 
+            // Alternative: https://de-upc.openfoodfacts.org (même base OFF). Donc on double OFF avec le champ "generic".
+
+            // Attente des deux avec timeout soft
+            const [offData, olData] = await Promise.all([offPromise, olPromise]);
+
+            let combined = [];
+
+            // --- Traitement Open Food Facts ---
+            if (offData && offData.status === 1 && offData.product) {
+                const p = offData.product;
+                let productName = p.product_name || p.generic_name || 'Nom inconnu';
+                let brand = p.brands || 'Marque inconnue';
+                let quantity = p.quantity || '';
+                let categories = p.categories || '';
+                combined.push(`🍽️ [Open Food Facts]`);
+                combined.push(`📛 ${productName} (${brand}) ${quantity}`);
+                if (p.ingredients_text) combined.push(`🧪 Ingrédients: ${p.ingredients_text.substr(0,120)}...`);
+                if (p.nutriscore_grade) combined.push(`⚖️ Nutriscore: ${p.nutriscore_grade.toUpperCase()}`);
+                if (p.ecoscore_grade) combined.push(`🌿 Ecoscore: ${p.ecoscore_grade.toUpperCase()}`);
+                combined.push(`🔗 https://fr.openfoodfacts.org/produit/${code}\n`);
             } else {
-                errorState.classList.add('active');
-                newScanBtn.style.display = 'block';
+                combined.push(`🍏 Open Food Facts : produit non référencé.`);
             }
-        }
 
-        // Afficher les résultats
-        function displayResults(results, barcode) {
-            const mainResult = results[0];
-            
-            barcodeDisplay.textContent = `Code: ${barcode}`;
-            sourceDisplay.textContent = `Source: ${mainResult.source}`;
-            productName.textContent = mainResult.data.name;
-            productBrand.textContent = mainResult.data.brand;
-            
-            // Aff
+            // --- Traitement Open Library (livres) ---
+            const key = `ISBN:${code}`;
+            if (olData && olData[key]) {
+                const book = olData[key];
+                let title = book.title || 'Titre inconnu';
+                let authors = book.authors ? book.authors.map(a => a.name).join(', ') : 'Auteur inconnu';
+                let publishDate = book.publish_date || 'Date inconnue';
+                let publishers = book.publishers ? book.publishers.map(p => p.name).join(', ') : 'Éditeur inconnu';
+                combined.push(`\n📚 [Open Library - Livre]`);
+                combined.push(`📖 Titre: ${title}`);
+                combined.push(`✍️ Auteur(s): ${authors}`);
+                combined.push(`🏢 Éditeur: ${publishers} (${publishDate})`);
+                if (book.number_of_pages) combined.push(`📄 Pages: ${book.number_of_pages}`);
+                combined.push(`🌐 https://openlibrary.org/isbn/${code}`);
+            } else {
+                combined.push(`📘 Open Library : aucun livre trouvé pour cet ISBN.`);
+            }
+
+            // Si les deux sont vides (pas de donnée), on le mentionne.
+            if (!offData && !olData) {
+                results.details = '';
+                return results;   // déclenchera message "aucune info"
+            }
+
+            results.details = combined.join('\n');
+            return results;
+
+        } catch (err) {
+            console.warn("Erreur lors des appels API:", err);
+            results.details = '';
+            return results;  // renvoie code mais sans détails → message d'erreur
+        }
+    }
+
+    // --- Fonction qui démarre le scan (caméra + zxing) ---
+    async function startScanner() {
+        if (isScanning) return;
+
+        // Réinitialise l'affichage info (optionnel)
+        // mais on ne veut pas effacer une info précédente ? si si, le nouveau scan va apporter qqchose.
+        infoContent.innerHTML = `<span class="debug-hint">Scan en cours, patientez...</span>`;
+
+        try {
+            // Demande de flux caméra (avec contrainte arrière de préférence)
+            const constraints = {
+                video: {
+                    facingMode: { ideal: 'environment' },  // caméra arrière si possible
+                    width: { min: 360, ideal: 640 }
+                },
+                audio: false
+            };
+            mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+            video.srcObject = mediaStream;
+
+            // Affiche l'UI
+            videoContainer.classList.add('active');
+            stopScanBtn.style.display = 'block';
+            scanArea.classList.add('scanning');
+            scannerBtn.disabled = true;
+            isScanning = true;
+
+            // Joue la vidéo (nécessaire sur mobile)
+            await video.play();
+
+            // Initialisation du scanner ZXing
+            const codeReader = new ZXing.BrowserMultiFormatReader();
+            activeScanner = codeReader;
+
+            // Lancer le decoding en continu depuis la video
+            codeReader.decodeFromVideoElement(video, async (result, error) => {
+                // error est un exception si aucun code trouvé (normal), on ignore.
+                if (result) {
+                    const barcode = result.getText();
+                    if (barcode) {
+                        // Dès qu'on a un code, on stoppe le scan immédiatement
+                        stopScanning();  // coupe cam & scanner
+
+                        // On affiche "recherche en cours"
+                        infoContent.innerHTML = `<span class="debug-hint">📡 recherche base de données pour ${barcode}...</span>`;
+
+                        // Appel aux bases de données
+                        const productData = await fetchProductInfo(barcode);
+                        // Si productData.details est vide -> pas d'info
+                        if (!productData.details || productData.details.trim() === '') {
+                            displayResult({code: barcode, details: ''}, false); // provoque "aucune info"
+                        } else {
+                            displayResult(productData, false);
+                        }
+                    }
+                }
+                // ne pas réagir sur les erreurs de scan (pas de code trouvé)
+            });
+
+        } catch (err) {
+            console.error('Erreur accès caméra ou scan:', err);
+            stopScanning(); // nettoie au cas où
+            // Afficher une erreur dans le panneau
+            displayResult(`Impossible d'accéder à la caméra. Vérifiez les permissions.`, true);
+            scannerBtn.disabled = false; // réactiver manuellement car stopScanning a déjà été appelé si erreur après flux? 
+            // si stopScanning n'est pas appelé (erreur avant), on le force:
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(t => t.stop());
+                mediaStream = null;
+            }
+            isScanning = false;
+            scannerBtn.disabled = false;
+            videoContainer.classList.remove('active');
+            stopScanBtn.style.display = 'none';
+        }
+    }
+
+    // --- Gestionnaire bouton scanner ---
+    scannerBtn.addEventListener('click', () => {
+        startScanner();
+    });
+
+    // --- Gestionnaire bouton stop ---
+    stopScanBtn.addEventListener('click', () => {
+        stopScanning();
+        // Ne pas effacer l'affichage info, juste remettre le bouton
+    });
+
+    // --- Nettoyage si on quitte la page (pas obligatoire mais propre)
+    window.addEventListener('beforeunload', () => {
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(track => track.stop());
+        }
+    });
+
+    // --- Petite amélioration : clic sur stop alors que déjà arrêté? déjà safe.
+    // --- pour éviter que le bouton scanner reste bloqué si crash, on ajoute un guard.
+})();
+</script>
+</body>
+    </html>
