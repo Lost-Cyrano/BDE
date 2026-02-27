@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Scan Express · Code‑barres</title>
+    <title>ScanBarre · fiable</title>
     <style>
         * {
             box-sizing: border-box;
@@ -12,471 +12,427 @@
         }
         body {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-            background: #f4f6f9;
+            background: #0b1a2a;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 12px;
+            padding: 8px;
         }
         .container {
             max-width: 480px;
             width: 100%;
-            background: white;
-            border-radius: 32px 32px 28px 28px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            background: #f8fafd;
+            border-radius: 32px;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.3);
             overflow: hidden;
-            padding: 24px 20px 32px;
-            transition: all 0.2s;
+            padding: 20px 16px 30px;
+            border: 1px solid #bed9f0;
         }
         h1 {
-            font-size: 1.9rem;
-            font-weight: 600;
-            letter-spacing: -0.02em;
-            color: #0b2b44;
-            margin-bottom: 8px;
-            padding-left: 4px;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0b2b3b;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         .sub {
-            color: #4a5f73;
-            margin-bottom: 24px;
-            font-size: 1rem;
-            padding-left: 4px;
-            border-left: 3px solid #3498db;
+            color: #2f5170;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            border-left: 4px solid #2e86c1;
             padding-left: 12px;
         }
-        .scan-area {
-            background: #eef2f7;
-            border-radius: 36px;
-            padding: 30px 16px;
-            text-align: center;
-            margin-bottom: 28px;
-            border: 2px dashed #b2c9de;
-            transition: border 0.2s, background 0.2s;
-            min-height: 220px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        .scan-area.scanning {
-            background: #1a1e2b;
-            border-color: #3498db;
-            border-style: solid;
-            padding: 8px 8px;
-        }
         #scanner-btn {
-            background: #0b2b44;
+            background: #0a2c3d;
             border: none;
             color: white;
-            font-size: 1.6rem;
-            font-weight: 500;
-            padding: 18px 18px;
+            font-size: 1.7rem;
+            font-weight: 600;
+            padding: 18px 16px;
             border-radius: 60px;
             width: 100%;
             display: flex;
+;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            box-shadow: 0 10px 18px rgba(11,43,68,0.25);
+            gap: 12px;
+            box-shadow: 0 8px 16px rgba(8,40,60,0.5);
             cursor: pointer;
-            transition: 0.15s;
-            margin-bottom: 8px;
-            border: 1px solid #154a6e;
+            transition: all 0.1s ease;
+            margin: 16px 0 18px;
+            border: 1px solid #3980a3;
         }
         #scanner-btn:active {
             transform: scale(0.97);
-            background: #0a1f30;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            background: #06212e;
         }
         #scanner-btn:disabled {
             opacity: 0.5;
             transform: none;
             pointer-events: none;
-            background: #5f7d9c;
         }
-        .btn-icon {
-            font-size: 2rem;
-            line-height: 1;
-        }
-        #video-container {
-            width: 100%;
-            border-radius: 28px;
+        .video-wrapper {
+            background: #000000;
+            border-radius: 38px;
             overflow: hidden;
-            background: black;
             position: relative;
+            width: 100%;
+            aspect-ratio: 4/3;
+            margin-bottom: 10px;
+            border: 3px solid #2c577a;
             display: none;
-            margin-bottom: 12px;
+            box-shadow: inset 0 0 10px #00000055;
         }
-        #video-container.active {
+        .video-wrapper.active {
             display: block;
         }
         #video {
             width: 100%;
-            height: auto;
+            height: 100%;
+            object-fit: cover;
             display: block;
-            border-radius: 28px;
-            transform: scaleX(-1);  /* effet miroir : plus naturel */
+            transform: rotate(0deg); /* pas de mirror forcing, orientation naturelle */
         }
         #stop-scan {
-            background: #e63946;
+            background: #c0392b;
             color: white;
             border: none;
             border-radius: 40px;
-            padding: 12px 20px;
+            padding: 15px 20px;
+            font-size: 1.4rem;
             font-weight: 600;
-            font-size: 1.2rem;
             width: 100%;
-            margin-top: 12px;
+            margin: 5px 0 15px;
             cursor: pointer;
-            border: 1px solid #b71c2c;
-            transition: 0.15s;
+            border: 1px solid #a03224;
+            transition: 0.1s;
         }
         #stop-scan:active {
-            background: #b71c2c;
+            background: #a03224;
         }
-        .info-panel {
-            background: #ffffff;
-            border-radius: 28px;
-            padding: 22px 18px;
-            box-shadow: inset 0 1px 4px #d0dbe8, 0 6px 14px rgba(0,10,20,0.08);
-            margin: 16px 0 18px;
-            word-break: break-word;
+        .card-result {
+            background: white;
+            border-radius: 30px;
+            padding: 18px 16px;
+            box-shadow: 0 4px 12px #abc0d3;
+            margin: 10px 0 8px;
+            border: 1px solid #bcd3e8;
         }
-        .info-title {
-            font-size: 1.2rem;
+        .result-header {
+            font-size: 1.25rem;
             font-weight: 600;
-            margin-bottom: 14px;
-            color: #1f3a5f;
+            color: #16344b;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            margin-bottom: 12px;
         }
-        .info-content {
-            background: #f2f6fc;
-            border-radius: 22px;
-            padding: 18px 16px;
-            font-size: 1rem;
-            color: #102331;
-            max-height: 380px;
+        .result-content {
+            background: #f0f5fc;
+            border-radius: 24px;
+            padding: 16px 14px;
+            max-height: 340px;
             overflow-y: auto;
-            border: 1px solid #cbd6e4;
-        }
-        .info-content pre {
-            font-family: inherit;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            margin: 0;
-            font-size: 0.95rem;
+            font-size: 1rem;
             line-height: 1.5;
+            border: 1px solid #c9ddf3;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
-        .error-msg {
-            background: #fee9e7;
-            border-left: 6px solid #c93e3e;
-            padding: 18px 14px;
-            border-radius: 22px;
+        .error-box {
+            background: #ffeae8;
+            border-left: 6px solid #b03a2e;
+            padding: 16px;
+            border-radius: 24px;
             font-weight: 500;
-            color: #7d2525;
         }
-        .badge {
-            background: #2ecc71;
+        .badge-code {
+            background: #1f5e8c;
             color: white;
             border-radius: 40px;
-            padding: 4px 16px;
-            font-size: 0.9rem;
+            padding: 5px 18px;
+            font-size: 1rem;
             display: inline-block;
             margin-bottom: 10px;
         }
         .note {
-            color: #3f5e7a;
-            font-size: 0.85rem;
+            color: #2a4e6e;
             text-align: center;
-            margin-top: 16px;
-            opacity: 0.75;
+            font-size: 0.85rem;
+            margin-top: 18px;
         }
         .debug-hint {
-            font-size: 0.8rem;
-            background: #eef3f9;
-            padding: 8px 16px;
+            background: #e5eff9;
+            padding: 12px;
             border-radius: 30px;
-            color: #2f577b;
+            color: #0f3e5c;
+            text-align: center;
         }
-        /* responsive perfect */
         button {
             -webkit-tap-highlight-color: transparent;
         }
     </style>
-    <!-- Bibliothèque de scan robuste : ZXing-js (version navigateur) -->
+    <!-- ZXing robuste version umd -->
     <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
 </head>
 <body>
 <div class="container">
-    <h1>📲 scan·code</h1>
-    <div class="sub">pointez, lisez, tout savoir</div>
+    <h1>🔍 <span style="font-size: 1.8rem;">scan&nbsp;·&nbsp;barre</span></h1>
+    <div class="sub">pointez le code, tout type d'article</div>
 
-    <!-- zone dynamique scan / vidéo -->
-    <div class="scan-area" id="scanArea">
-        <div id="video-container">
-            <video id="video" playsinline></video>
-        </div>
-        <button id="stop-scan" style="display: none;">⏹ Arrêter le scan</button>
+    <!-- zone vidéo -->
+    <div class="video-wrapper" id="videoWrapper">
+        <video id="video" playsinline></video>
     </div>
 
-    <!-- Bouton principal scanner -->
+    <!-- boutons de contrôle -->
+    <button id="stop-scan" style="display: none;">⏹ ARRÊTER LE SCAN</button>
     <button id="scanner-btn">
-        <span class="btn-icon">📷</span> Scanner un article
+        <span style="font-size: 2.2rem;">📷</span> SCANNER UN ARTICLE
     </button>
 
-    <!-- Panneau d'affichage des infos -->
-    <div class="info-panel" id="infoPanel">
-        <div class="info-title">
-            <span>📦 Résultat</span>
-        </div>
-        <div class="info-content" id="infoContent">
-            <span class="debug-hint">En attente d’un scan...</span>
+    <!-- panneau résultat -->
+    <div class="card-result">
+        <div class="result-header"><span>📦</span> Informations trouvées</div>
+        <div class="result-content" id="resultDisplay">
+            <div class="debug-hint">En attente d’un scan...</div>
         </div>
     </div>
-    <div class="note">appuyez sur le bouton, autorisez la caméra · compatible courses, livres, etc.</div>
+    <div class="note">✅ base open food facts + open library (livres) · scan automatique</div>
 </div>
 
 <script>
 (function() {
-    // --- Éléments DOM ---
+    // --- DOM ---
     const scannerBtn = document.getElementById('scanner-btn');
-    const stopScanBtn = document.getElementById('stop-scan');
-    const videoContainer = document.getElementById('video-container');
+    const stopBtn = document.getElementById('stop-scan');
     const video = document.getElementById('video');
-    const scanArea = document.getElementById('scanArea');
-    const infoContent = document.getElementById('infoContent');
+    const videoWrapper = document.getElementById('videoWrapper');
+    const resultDisplay = document.getElementById('resultDisplay');
 
-    // --- États internes ---
-    let activeScanner = null;            // instance MultiFormatReader
-    let mediaStream = null;              // flux caméra à stopper
+    // --- État interne ---
+    let mediaStream = null;
+    let codeReader = null;
     let isScanning = false;
+    let scanController = null; // pas utilisé directement, mais on garde
 
-    // --- Fonction d'affichage des infos (ou erreur) ---
-    function displayResult(data, error = false) {
-        if (error) {
-            // message d'erreur explicite
-            infoContent.innerHTML = `<div class="error-msg">❌ ${data}</div>`;
-            return;
-        }
-        // data est un objet avec .code et .details (texte formaté)
-        let html = `<div class="badge">✅ code scanné : ${data.code}</div>`;
-        if (data.details && data.details !== '') {
-            html += `<pre>${data.details}</pre>`;
-        } else {
-            html += `<div class="error-msg">⚠️ Aucune information trouvée dans les bases gratuites.</div>`;
-        }
-        infoContent.innerHTML = html;
-    }
+    // --- fonction arrêt total ---
+    function stopEverything() {
+        if (!isScanning && !mediaStream) return;
 
-    // --- Fonction pour tout arrêter (caméra + scanner) et réactiver bouton ---
-    function stopScanning() {
-        if (!isScanning) return;
-
-        // 1. Arrêter tous les flux video
+        // Arrêter les pistes caméra
         if (mediaStream) {
             mediaStream.getTracks().forEach(track => track.stop());
             mediaStream = null;
         }
 
-        // 2. Nettoyer le scanner (détache la lecture)
-        if (activeScanner) {
-            try {
-                // @zxing n'a pas de méthode reset explicite, on se contente de lâcher la référence
-                activeScanner = null;
-            } catch (e) {}
-        }
-
-        // 3. Cacher la video, réinitialiser UI
-        videoContainer.classList.remove('active');
+        // Détacher la source vidéo
         video.srcObject = null;
-        stopScanBtn.style.display = 'none';
-        scanArea.classList.remove('scanning');
-        isScanning = false;
+
+        // Reset UI
+        videoWrapper.classList.remove('active');
+        stopBtn.style.display = 'none';
         scannerBtn.disabled = false;
+        isScanning = false;
+
+        // Lâcher le reader (aucune méthode stop explicite, on oublie l'instance)
+        codeReader = null;
     }
 
-    // --- Interroger plusieurs bases (Open Food Facts + Open EAN/ISBN via upcdatabase? on utilise deux sources fiables)
-    async function fetchProductInfo(barcode) {
+    // --- affichage résultat ou erreur ---
+    function setResult(content, isError = false, barcode = null) {
+        if (isError) {
+            resultDisplay.innerHTML = `<div class="error-box">❌ ${content}</div>`;
+            return;
+        }
+        if (typeof content === 'string') {
+            resultDisplay.innerHTML = content; // déjà formaté
+        } else {
+            // content = { code, details }
+            let html = `<div class="badge-code">✅ code: ${content.code}</div>`;
+            if (content.details && content.details.length > 5) {
+                html += `<pre style="font-family:inherit; white-space:pre-wrap;">${content.details}</pre>`;
+            } else {
+                html += `<div class="error-box">⚠️ Aucune information trouvée sur les bases gratuites.</div>`;
+            }
+            resultDisplay.innerHTML = html;
+        }
+    }
+
+    // --- Appels aux bases de données (double source) ---
+    async function fetchFromDatabases(barcode) {
         const code = barcode.trim();
-        // on utilise Open Food Facts (alimentaire / cosmétique / divers) ET un fallback Open EAN / ISBN via Google Books? mais on va utiliser aussi une autre API : https://world.openfoodfacts.org/ couvre beaucoup.
-        // Pour les livres, on utilisera Open Library (covers/ISBN) mais surtout Open Food Facts contient beaucoup de produits non alimentaires (cosmétiques, etc.)
-        // On fait deux appels parallèles avec gestion d'échec.
-
-        const OFF_URL = `https://world.openfoodfacts.org/api/v2/product/${code}.json`;
-        // Deuxième source : Open EAN (gratuit, limité mais large) - on utilise le proxy public de upcdatabase? Non, préférons une source fiable comme Google Books pour les ISBN.
-        // Pour les codes non alimentaires (livres), on peut appeler Open Library (couverture livres) et extraire titre/auteur.
-        // On combine les promesses: on lance deux requêtes, et on fusionne.
-
+        // Sources : Open Food Facts + Open Library (ISBN)
         const results = {
             code: code,
             details: ''
         };
 
-        try {
-            // Requête 1: Open Food Facts (produits de grande conso, cosmétiques, boissons, etc.)
-            const offPromise = fetch(OFF_URL).then(res => res.ok ? res.json() : Promise.reject('OFF not found')).catch(() => null);
+        // Promesses avec timeout court (4 secondes) pour ne pas bloquer
+        const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
 
-            // Requête 2: Open Library (pour ISBN / livres) - si le code ressemble à un ISBN (10 ou 13 chiffres mais on tente systématiquement)
-            const olPromise = fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${code}&format=json&jscmd=data`).then(res => res.json()).catch(() => null);
+        const offPromise = fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json`)
+            .then(res => res.ok ? res.json() : Promise.reject())
+            .catch(() => null);
 
-            // Requête 3 (bonus) : barcode lookups possible ? mais on s'arrête là, on veut gratuit et fiable. Ajout d'un autre endpoint : https://api.upcitemdb.com (mais nécessite api key) laisser tomber pour éviter les bugs. 
-            // Alternative: https://de-upc.openfoodfacts.org (même base OFF). Donc on double OFF avec le champ "generic".
+        const olPromise = fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${code}&format=json&jscmd=data`)
+            .then(res => res.json())
+            .catch(() => null);
 
-            // Attente des deux avec timeout soft
-            const [offData, olData] = await Promise.all([offPromise, olPromise]);
+        // On attend les deux avec un délai raisonnable
+        const [offData, olData] = await Promise.allSettled([offPromise, olPromise]);
 
-            let combined = [];
+        const parts = [];
 
-            // --- Traitement Open Food Facts ---
-            if (offData && offData.status === 1 && offData.product) {
-                const p = offData.product;
-                let productName = p.product_name || p.generic_name || 'Nom inconnu';
-                let brand = p.brands || 'Marque inconnue';
-                let quantity = p.quantity || '';
-                let categories = p.categories || '';
-                combined.push(`🍽️ [Open Food Facts]`);
-                combined.push(`📛 ${productName} (${brand}) ${quantity}`);
-                if (p.ingredients_text) combined.push(`🧪 Ingrédients: ${p.ingredients_text.substr(0,120)}...`);
-                if (p.nutriscore_grade) combined.push(`⚖️ Nutriscore: ${p.nutriscore_grade.toUpperCase()}`);
-                if (p.ecoscore_grade) combined.push(`🌿 Ecoscore: ${p.ecoscore_grade.toUpperCase()}`);
-                combined.push(`🔗 https://fr.openfoodfacts.org/produit/${code}\n`);
-            } else {
-                combined.push(`🍏 Open Food Facts : produit non référencé.`);
-            }
-
-            // --- Traitement Open Library (livres) ---
-            const key = `ISBN:${code}`;
-            if (olData && olData[key]) {
-                const book = olData[key];
-                let title = book.title || 'Titre inconnu';
-                let authors = book.authors ? book.authors.map(a => a.name).join(', ') : 'Auteur inconnu';
-                let publishDate = book.publish_date || 'Date inconnue';
-                let publishers = book.publishers ? book.publishers.map(p => p.name).join(', ') : 'Éditeur inconnu';
-                combined.push(`\n📚 [Open Library - Livre]`);
-                combined.push(`📖 Titre: ${title}`);
-                combined.push(`✍️ Auteur(s): ${authors}`);
-                combined.push(`🏢 Éditeur: ${publishers} (${publishDate})`);
-                if (book.number_of_pages) combined.push(`📄 Pages: ${book.number_of_pages}`);
-                combined.push(`🌐 https://openlibrary.org/isbn/${code}`);
-            } else {
-                combined.push(`📘 Open Library : aucun livre trouvé pour cet ISBN.`);
-            }
-
-            // Si les deux sont vides (pas de donnée), on le mentionne.
-            if (!offData && !olData) {
-                results.details = '';
-                return results;   // déclenchera message "aucune info"
-            }
-
-            results.details = combined.join('\n');
-            return results;
-
-        } catch (err) {
-            console.warn("Erreur lors des appels API:", err);
-            results.details = '';
-            return results;  // renvoie code mais sans détails → message d'erreur
+        // --- Open Food Facts ---
+        if (offData.status === 'fulfilled' && offData.value && offData.value.status === 1) {
+            const p = offData.value.product;
+            const name = p.product_name || p.generic_name || 'Nom inconnu';
+            const brand = p.brands || 'Marque inconnue';
+            parts.push(`🍏 OPEN FOOD FACTS :`);
+            parts.push(`📛 ${name} (${brand})`);
+            if (p.quantity) parts.push(`📦 ${p.quantity}`);
+            if (p.ingredients_text) parts.push(`🧪 Ingrédients: ${p.ingredients_text.substring(0,150)}...`);
+            if (p.nutriscore_grade) parts.push(`⚖️ Nutriscore: ${p.nutriscore_grade.toUpperCase()}`);
+            if (p.ecoscore_grade) parts.push(`🌿 Ecoscore: ${p.ecoscore_grade.toUpperCase()}`);
+            if (p.categories) parts.push(`🏷️ Catégories: ${p.categories.split(',').slice(0,3).join(', ')}`);
+            parts.push(`🔗 https://fr.openfoodfacts.org/produit/${code}`);
+        } else {
+            parts.push(`🍏 Open Food Facts : produit non référencé.`);
         }
+
+        parts.push('---');
+
+        // --- Open Library (livres) ---
+        if (olData.status === 'fulfilled' && olData.value && olData.value[`ISBN:${code}`]) {
+            const book = olData.value[`ISBN:${code}`];
+            const title = book.title || 'Titre inconnu';
+            const authors = book.authors ? book.authors.map(a => a.name).join(', ') : 'Auteur inconnu';
+            const publishers = book.publishers ? book.publishers.map(p => p.name).join(', ') : 'Éditeur inconnu';
+            const publishDate = book.publish_date || 'Date inconnue';
+            parts.push(`📚 OPEN LIBRARY (LIVRE) :`);
+            parts.push(`📖 ${title}`);
+            parts.push(`✍️ ${authors}`);
+            parts.push(`🏢 ${publishers} (${publishDate})`);
+            if (book.number_of_pages) parts.push(`📄 ${book.number_of_pages} pages`);
+            parts.push(`🌐 https://openlibrary.org/isbn/${code}`);
+        } else {
+            parts.push(`📘 Open Library : aucun livre pour cet ISBN.`);
+        }
+
+        results.details = parts.join('\n');
+        return results;
     }
 
-    // --- Fonction qui démarre le scan (caméra + zxing) ---
-    async function startScanner() {
-        if (isScanning) return;
+    // --- Démarrer le scanner (corrigé orientation et robustesse) ---
+    async function startScan() {
+        if (isScanning) {
+            stopEverything();
+            return;
+        }
 
-        // Réinitialise l'affichage info (optionnel)
-        // mais on ne veut pas effacer une info précédente ? si si, le nouveau scan va apporter qqchose.
-        infoContent.innerHTML = `<span class="debug-hint">Scan en cours, patientez...</span>`;
+        // Reset affichage
+        resultDisplay.innerHTML = `<div class="debug-hint">📡 Activation caméra...</div>`;
 
         try {
-            // Demande de flux caméra (avec contrainte arrière de préférence)
+            // Demander caméra ARRIÈRE impérativement (environement)
             const constraints = {
                 video: {
-                    facingMode: { ideal: 'environment' },  // caméra arrière si possible
-                    width: { min: 360, ideal: 640 }
+                    facingMode: { exact: 'environment' }, // Force arrière, sinon erreur -> on a un fallback
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
                 },
                 audio: false
             };
-            mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-            video.srcObject = mediaStream;
 
-            // Affiche l'UI
-            videoContainer.classList.add('active');
-            stopScanBtn.style.display = 'block';
-            scanArea.classList.add('scanning');
+            // Tentative avec fallback si environnement exact échoue
+            let stream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+            } catch (err) {
+                console.warn('caméra arrière non disponible, on prend la première dispo');
+                // fallback sans facingMode exact
+                const fallbackConstraints = { video: { facingMode: 'environment' }, audio: false };
+                stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+            }
+
+            mediaStream = stream;
+            video.srcObject = stream;
+
+            // Afficher UI
+            videoWrapper.classList.add('active');
+            stopBtn.style.display = 'block';
             scannerBtn.disabled = true;
             isScanning = true;
 
-            // Joue la vidéo (nécessaire sur mobile)
+            // Lire la vidéo (nécessaire sur iOS)
             await video.play();
 
-            // Initialisation du scanner ZXing
-            const codeReader = new ZXing.BrowserMultiFormatReader();
-            activeScanner = codeReader;
+            // Initialiser le reader
+            codeReader = new ZXing.BrowserMultiFormatReader();
+            const hints = new Map();
+            // On accepte une grande variété de formats (EAN, UPC, CODE128, ISBN, etc.)
+            codeReader.hints = hints;
 
-            // Lancer le decoding en continu depuis la video
-            codeReader.decodeFromVideoElement(video, async (result, error) => {
-                // error est un exception si aucun code trouvé (normal), on ignore.
+            // Démarrer le decoding en continu (sans mirror bug)
+            codeReader.decodeFromVideoElement(video, (result, err) => {
+                // Si result présent et pas d'erreur fatale
                 if (result) {
                     const barcode = result.getText();
-                    if (barcode) {
-                        // Dès qu'on a un code, on stoppe le scan immédiatement
-                        stopScanning();  // coupe cam & scanner
+                    if (barcode && barcode.length > 3) {
+                        // STOPPER IMMÉDIATEMENT
+                        stopEverything(); // stop caméra + nettoyage
 
-                        // On affiche "recherche en cours"
-                        infoContent.innerHTML = `<span class="debug-hint">📡 recherche base de données pour ${barcode}...</span>`;
+                        // Afficher recherche
+                        resultDisplay.innerHTML = `<div class="debug-hint">🔎 Interrogation base pour <strong>${barcode}</strong>...</div>`;
 
-                        // Appel aux bases de données
-                        const productData = await fetchProductInfo(barcode);
-                        // Si productData.details est vide -> pas d'info
-                        if (!productData.details || productData.details.trim() === '') {
-                            displayResult({code: barcode, details: ''}, false); // provoque "aucune info"
-                        } else {
-                            displayResult(productData, false);
-                        }
+                        // Lancer la récupération
+                        fetchFromDatabases(barcode).then(product => {
+                            setResult(product, false);
+                        }).catch(e => {
+                            setResult(`Erreur appel API: ${e.message}`, true);
+                        });
                     }
                 }
-                // ne pas réagir sur les erreurs de scan (pas de code trouvé)
+                // Ne pas réagir aux "No MultiFormatReader" qui sont normaux
             });
 
         } catch (err) {
-            console.error('Erreur accès caméra ou scan:', err);
-            stopScanning(); // nettoie au cas où
-            // Afficher une erreur dans le panneau
-            displayResult(`Impossible d'accéder à la caméra. Vérifiez les permissions.`, true);
-            scannerBtn.disabled = false; // réactiver manuellement car stopScanning a déjà été appelé si erreur après flux? 
-            // si stopScanning n'est pas appelé (erreur avant), on le force:
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(t => t.stop());
-                mediaStream = null;
-            }
+            console.error('Erreur scan:', err);
+            stopEverything(); // nettoie au cas où
+
+            let errorMsg = err.message || 'Impossible de démarrer la caméra. Vérifiez les permissions.';
+            if (err.name === 'NotAllowedError') errorMsg = 'Autorisation caméra refusée.';
+            else if (err.name === 'NotFoundError') errorMsg = 'Aucune caméra trouvée.';
+
+            setResult(errorMsg, true);
+            scannerBtn.disabled = false; // réactiver si stop ne l'a pas fait
+            videoWrapper.classList.remove('active');
+            stopBtn.style.display = 'none';
             isScanning = false;
-            scannerBtn.disabled = false;
-            videoContainer.classList.remove('active');
-            stopScanBtn.style.display = 'none';
         }
     }
 
-    // --- Gestionnaire bouton scanner ---
-    scannerBtn.addEventListener('click', () => {
-        startScanner();
+    // --- gestionnaires ---
+    scannerBtn.addEventListener('click', startScan);
+
+    stopBtn.addEventListener('click', () => {
+        stopEverything();
+        // Ne pas effacer le résultat, on garde l'affichage
     });
 
-    // --- Gestionnaire bouton stop ---
-    stopScanBtn.addEventListener('click', () => {
-        stopScanning();
-        // Ne pas effacer l'affichage info, juste remettre le bouton
-    });
-
-    // --- Nettoyage si on quitte la page (pas obligatoire mais propre)
+    // Nettoyage avant départ page
     window.addEventListener('beforeunload', () => {
         if (mediaStream) {
-            mediaStream.getTracks().forEach(track => track.stop());
+            mediaStream.getTracks().forEach(t => t.stop());
         }
     });
 
-    // --- Petite amélioration : clic sur stop alors que déjà arrêté? déjà safe.
-    // --- pour éviter que le bouton scanner reste bloqué si crash, on ajoute un guard.
+    // Option : si le scan plante ou ne se lance pas, s'assurer que le bouton redevienne actif après arrêt
+    // stopEverything le fait déjà.
 })();
 </script>
 </body>
