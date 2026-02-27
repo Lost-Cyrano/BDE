@@ -2,8 +2,8 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>Multi-Scan - Scanner universel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ScanMaster - Scanner de codes-barres</title>
     <style>
         * {
             margin: 0;
@@ -13,159 +13,197 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #000;
+            background: #f0f2f5;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 0;
-            margin: 0;
+            padding: 12px;
         }
 
-        .app {
+        .container {
             width: 100%;
-            max-width: 450px;
-            height: 100vh;
-            max-height: 900px;
+            max-width: 400px;
             background: white;
-            display: flex;
-            flex-direction: column;
-            position: relative;
+            border-radius: 32px;
             overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
         }
 
-        /* Header */
         .header {
-            background: #1a2a3a;
+            background: #2c3e50;
             color: white;
-            padding: 20px 16px;
+            padding: 24px 20px;
             text-align: center;
         }
 
         .header h1 {
-            font-size: 24px;
+            font-size: 28px;
+            margin-bottom: 8px;
             font-weight: 600;
-            margin-bottom: 4px;
         }
 
         .header p {
             font-size: 14px;
-            opacity: 0.8;
+            opacity: 0.9;
         }
 
-        /* Zone de scan */
-        .scanner-section {
-            position: relative;
+        .main-content {
+            padding: 20px;
+        }
+
+        /* Bouton de scan */
+        .scan-button {
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 60px;
+            padding: 20px;
+            font-size: 20px;
+            font-weight: 600;
             width: 100%;
-            background: #000;
-            aspect-ratio: 1;
-            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 8px 16px rgba(52,152,219,0.3);
+            margin-bottom: 20px;
         }
 
-        #scanner {
+        .scan-button:active {
+            transform: scale(0.98);
+            background: #2980b9;
+        }
+
+        .scan-button.scanning {
+            background: #e74c3c;
+            box-shadow: 0 8px 16px rgba(231,76,60,0.3);
+        }
+
+        /* Zone du scanner */
+        .scanner-wrapper {
+            width: 100%;
+            aspect-ratio: 1;
+            background: #000;
+            border-radius: 24px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .scanner-wrapper.active {
+            display: block;
+        }
+
+        #video {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
 
-        .scanner-overlay {
+        .scan-overlay {
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(transparent 50%, rgba(0,0,0,0.1) 50%);
-            background-size: 100% 4px;
-            pointer-events: none;
-            border: 2px solid rgba(255,215,0,0.5);
-            box-shadow: 0 0 0 999px rgba(0,0,0,0.3);
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 24px;
         }
 
-        .scan-line {
+        .scan-corner {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-color: #3498db;
+            border-style: solid;
+            border-width: 0;
+        }
+
+        .corner-tl {
+            top: 20px;
+            left: 20px;
+            border-top-width: 4px;
+            border-left-width: 4px;
+        }
+
+        .corner-tr {
+            top: 20px;
+            right: 20px;
+            border-top-width: 4px;
+            border-right-width: 4px;
+        }
+
+        .corner-bl {
+            bottom: 20px;
+            left: 20px;
+            border-bottom-width: 4px;
+            border-left-width: 4px;
+        }
+
+        .corner-br {
+            bottom: 20px;
+            right: 20px;
+            border-bottom-width: 4px;
+            border-right-width: 4px;
+        }
+
+        .scan-line-anim {
             position: absolute;
             left: 10%;
             right: 10%;
             height: 2px;
-            background: #FFD700;
-            animation: scanMove 2s ease-in-out infinite;
-            box-shadow: 0 0 10px #FFD700;
+            background: #3498db;
+            animation: scanMove 2s linear infinite;
+            box-shadow: 0 0 10px #3498db;
         }
 
         @keyframes scanMove {
-            0% { top: 20%; }
-            50% { top: 80%; }
-            100% { top: 20%; }
+            0% { top: 15%; }
+            50% { top: 85%; }
+            100% { top: 15%; }
         }
 
-        .scan-instruction {
+        .scan-hint {
             position: absolute;
-            bottom: 20px;
+            bottom: 15px;
             left: 0;
             right: 0;
             text-align: center;
             color: white;
-            font-size: 16px;
-            font-weight: 500;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-            background: rgba(0,0,0,0.3);
+            font-size: 14px;
+            text-shadow: 0 2px 4px black;
+            background: rgba(0,0,0,0.5);
             padding: 8px;
-            backdrop-filter: blur(2px);
         }
 
-        /* Bouton de scan */
-        .scan-btn {
-            background: #FFD700;
-            border: none;
-            border-radius: 30px;
-            padding: 16px 32px;
-            font-size: 18px;
-            font-weight: 600;
-            color: #1a2a3a;
-            margin: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .scan-btn:active {
-            transform: scale(0.95);
-            background: #e6c200;
-        }
-
-        .scan-btn:disabled {
-            opacity: 0.5;
-            transform: none;
-        }
-
-        /* Zone de résultats */
-        .results {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px;
-            background: #f5f7fa;
-        }
-
-        .loading {
+        /* États */
+        .loading-state, .error-state, .result-state {
             display: none;
-            text-align: center;
-            padding: 40px 20px;
+            padding: 20px;
+            border-radius: 20px;
+            margin: 20px 0;
         }
 
-        .loading.active {
+        .loading-state.active, .error-state.active, .result-state.active {
             display: block;
+        }
+
+        .loading-state {
+            background: #f8f9fa;
+            text-align: center;
         }
 
         .spinner {
             width: 40px;
             height: 40px;
-            border: 4px solid #ddd;
-            border-top-color: #FFD700;
+            border: 4px solid #e0e0e0;
+            border-top-color: #3498db;
             border-radius: 50%;
-            margin: 0 auto 16px;
+            margin: 10px auto;
             animation: spin 1s linear infinite;
         }
 
@@ -173,216 +211,212 @@
             to { transform: rotate(360deg); }
         }
 
-        .error-card {
+        .error-state {
             background: #fee;
-            border-radius: 16px;
-            padding: 24px;
-            text-align: center;
             color: #c00;
-            display: none;
-            margin-bottom: 16px;
+            text-align: center;
+            border-left: 4px solid #c00;
         }
 
-        .error-card.active {
-            display: block;
+        .result-state {
+            background: #f8f9fa;
         }
 
-        .product-card {
-            background: white;
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 16px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            display: none;
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
         }
 
-        .product-card.active {
-            display: block;
-        }
-
-        .barcode-chip {
-            background: #f0f2f5;
+        .barcode-badge {
+            background: #2c3e50;
+            color: white;
             padding: 6px 12px;
-            border-radius: 20px;
+            border-radius: 30px;
             font-family: monospace;
             font-size: 14px;
-            display: inline-block;
-            margin-bottom: 12px;
-        }
-
-        .product-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: #1a2a3a;
-            margin-bottom: 4px;
-        }
-
-        .product-brand {
-            color: #666;
-            font-size: 15px;
-            margin-bottom: 16px;
         }
 
         .source-badge {
-            display: inline-block;
-            background: #1a2a3a;
+            background: #3498db;
             color: white;
             padding: 4px 12px;
-            border-radius: 20px;
+            border-radius: 30px;
             font-size: 12px;
-            margin-bottom: 16px;
         }
 
-        .info-grid {
+        .result-name {
+            font-size: 22px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .result-brand {
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+
+        .result-details {
             display: flex;
             flex-direction: column;
             gap: 12px;
         }
 
-        .info-row {
+        .detail-item {
             display: flex;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
         }
 
-        .info-label {
+        .detail-label {
             flex: 1;
-            color: #666;
+            color: #7f8c8d;
             font-size: 14px;
         }
 
-        .info-value {
+        .detail-value {
             flex: 2;
-            color: #1a2a3a;
+            color: #2c3e50;
             font-weight: 500;
             font-size: 14px;
             text-align: right;
         }
 
-        .db-tabs {
+        .sources-tabs {
             display: flex;
             gap: 8px;
-            margin: 16px 0;
+            margin: 15px 0;
             overflow-x: auto;
-            padding: 4px 0;
+            padding: 5px 0;
         }
 
-        .db-tab {
+        .source-tab {
             background: white;
             border: 1px solid #ddd;
-            border-radius: 20px;
+            border-radius: 30px;
             padding: 8px 16px;
             font-size: 13px;
             white-space: nowrap;
             cursor: pointer;
         }
 
-        .db-tab.active {
-            background: #1a2a3a;
+        .source-tab.active {
+            background: #3498db;
             color: white;
-            border-color: #1a2a3a;
+            border-color: #3498db;
         }
 
-        .db-tab.success {
-            border-color: #4CAF50;
-            background: #e8f5e8;
-        }
-
-        .reset-btn {
+        .new-scan-btn {
             background: none;
-            border: none;
-            color: #FFD700;
+            border: 2px solid #3498db;
+            color: #3498db;
+            border-radius: 60px;
+            padding: 15px;
             font-size: 16px;
             font-weight: 600;
-            padding: 12px;
             width: 100%;
+            margin-top: 20px;
             cursor: pointer;
-            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .new-scan-btn:active {
+            background: #3498db;
+            color: white;
         }
     </style>
 </head>
 <body>
-    <div class="app">
+    <div class="container">
         <div class="header">
-            <h1>📦 Multi-Scan</h1>
+            <h1>📱 ScanMaster</h1>
             <p>Scannez n'importe quel code-barres</p>
         </div>
 
-        <!-- Scanner -->
-        <div class="scanner-section" id="scannerSection" style="display: none;">
-            <video id="scanner" playsinline></video>
-            <div class="scanner-overlay"></div>
-            <div class="scan-line"></div>
-            <div class="scan-instruction">🔍 Centrez le code-barres dans le cadre</div>
-        </div>
+        <div class="main-content">
+            <!-- Bouton de scan principal -->
+            <button class="scan-button" id="scanButton">
+                <span>📷</span> Scanner un article
+            </button>
 
-        <!-- Bouton scan -->
-        <button class="scan-btn" id="scanBtn">
-            <span>📷</span> Scanner un article
-        </button>
+            <!-- Zone du scanner -->
+            <div class="scanner-wrapper" id="scannerWrapper">
+                <video id="video" playsinline></video>
+                <div class="scan-overlay"></div>
+                <div class="scan-corner corner-tl"></div>
+                <div class="scan-corner corner-tr"></div>
+                <div class="scan-corner corner-bl"></div>
+                <div class="scan-corner corner-br"></div>
+                <div class="scan-line-anim"></div>
+                <div class="scan-hint">Positionnez le code-barres dans le cadre</div>
+            </div>
 
-        <!-- Résultats -->
-        <div class="results" id="results">
-            <div class="loading" id="loading">
+            <!-- États -->
+            <div class="loading-state" id="loadingState">
                 <div class="spinner"></div>
-                <p>Recherche dans les bases de données...</p>
+                <p>Recherche du produit...</p>
             </div>
 
-            <div class="error-card" id="errorMessage">
-                ❌ Produit non trouvé dans nos bases de données
+            <div class="error-state" id="errorState">
+                <p>❌ Aucun produit trouvé pour ce code-barres</p>
             </div>
 
-            <div class="product-card" id="productInfo">
-                <div class="barcode-chip" id="barcodeDisplay">Code: </div>
-                <div class="product-title" id="productName">Nom du produit</div>
-                <div class="product-brand" id="productBrand">Marque</div>
-                <div class="source-badge" id="dataSource">Source: </div>
+            <div class="result-state" id="resultState">
+                <div class="result-header">
+                    <span class="barcode-badge" id="barcodeDisplay">Code: </span>
+                    <span class="source-badge" id="sourceDisplay">Source: </span>
+                </div>
+                <div class="result-name" id="productName"></div>
+                <div class="result-brand" id="productBrand"></div>
+                <div class="result-details" id="productDetails"></div>
                 
-                <div class="info-grid" id="infoGrid">
-                    <!-- Les infos seront injectées ici -->
+                <!-- Sources alternatives -->
+                <div id="alternativeSources" style="display: none;">
+                    <div style="margin: 20px 0 10px; color: #7f8c8d;">Autres sources disponibles:</div>
+                    <div class="sources-tabs" id="sourcesTabs"></div>
                 </div>
             </div>
 
-            <div id="multipleSources" style="display: none;">
-                <div style="margin: 16px 0 8px; color: #666; font-size: 14px;">📚 Autres sources :</div>
-                <div class="db-tabs" id="dbTabs"></div>
-            </div>
-
-            <button class="reset-btn" id="resetBtn" style="display: none;">↺ Scanner un autre article</button>
+            <!-- Bouton nouveau scan (caché par défaut) -->
+            <button class="new-scan-btn" id="newScanBtn" style="display: none;">
+                ↺ Scanner un autre article
+            </button>
         </div>
     </div>
 
-    <!-- Bibliothèques -->
+    <!-- Librairie jsQR -->
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-    
+
     <script>
         // Éléments DOM
-        const scannerSection = document.getElementById('scannerSection');
-        const video = document.getElementById('scanner');
-        const scanBtn = document.getElementById('scanBtn');
-        const loading = document.getElementById('loading');
-        const errorMessage = document.getElementById('errorMessage');
-        const productInfo = document.getElementById('productInfo');
-        const resetBtn = document.getElementById('resetBtn');
+        const scanButton = document.getElementById('scanButton');
+        const scannerWrapper = document.getElementById('scannerWrapper');
+        const video = document.getElementById('video');
+        const loadingState = document.getElementById('loadingState');
+        const errorState = document.getElementById('errorState');
+        const resultState = document.getElementById('resultState');
+        const newScanBtn = document.getElementById('newScanBtn');
         const barcodeDisplay = document.getElementById('barcodeDisplay');
+        const sourceDisplay = document.getElementById('sourceDisplay');
         const productName = document.getElementById('productName');
         const productBrand = document.getElementById('productBrand');
-        const dataSource = document.getElementById('dataSource');
-        const infoGrid = document.getElementById('infoGrid');
-        const multipleSources = document.getElementById('multipleSources');
-        const dbTabs = document.getElementById('dbTabs');
+        const productDetails = document.getElementById('productDetails');
+        const alternativeSources = document.getElementById('alternativeSources');
+        const sourcesTabs = document.getElementById('sourcesTabs');
 
-        let scanning = false;
-        let stream = null;
-        let animationFrame = null;
-        let lastCode = '';
-        let scanTimeout = null;
+        // Variables d'état
+        let isScanning = false;
+        let videoStream = null;
+        let animationId = null;
+        let currentBarcode = '';
 
-        // Liste des bases de données
+        // Configuration des bases de données
         const databases = [
             {
-                name: 'Open Food Facts',
-                type: 'food',
+                id: 'food',
+                name: '🍔 Open Food Facts',
                 url: (barcode) => `https://world.openfoodfacts.org/api/v2/product/${barcode}.json`,
                 parser: (data) => {
                     if (!data || data.status !== 1) return null;
@@ -391,96 +425,97 @@
                         name: p.product_name || 'Nom inconnu',
                         brand: p.brands || 'Marque inconnue',
                         details: [
-                            { label: 'Quantité', value: p.quantity || 'Non spécifié' },
-                            { label: 'Catégories', value: p.categories ? p.categories.split(',').slice(0,2).join(', ') : 'Non spécifié' },
-                            { label: 'Labels', value: p.labels ? p.labels.split(',').slice(0,2).join(', ') : 'Non spécifié' },
-                            { label: 'Nutri-Score', value: p.nutriscore_grade ? p.nutriscore_grade.toUpperCase() : 'Non spécifié' },
-                            { label: 'Ingrédients', value: p.ingredients_text ? p.ingredients_text.substring(0, 100) + '...' : 'Non spécifié' }
+                            { label: '📦 Quantité', value: p.quantity || 'Non spécifié' },
+                            { label: '🏷️ Catégories', value: p.categories ? p.categories.split(',').slice(0,2).join(', ') : 'Non spécifié' },
+                            { label: '⭐ Nutri-Score', value: p.nutriscore_grade ? p.nutriscore_grade.toUpperCase() : 'Non spécifié' },
+                            { label: '🌍 Labels', value: p.labels ? p.labels.split(',').slice(0,2).join(', ') : 'Non spécifié' }
                         ]
                     };
                 }
             },
             {
-                name: 'Open Beauty Facts',
-                type: 'beauty',
+                id: 'beauty',
+                name: '💄 Open Beauty Facts',
                 url: (barcode) => `https://world.openbeautyfacts.org/api/v2/product/${barcode}.json`,
                 parser: (data) => {
                     if (!data || data.status !== 1) return null;
                     const p = data.product;
                     return {
-                        name: p.product_name || 'Produit inconnu',
+                        name: p.product_name || 'Nom inconnu',
                         brand: p.brands || 'Marque inconnue',
                         details: [
-                            { label: 'Type', value: p.categories ? p.categories.split(',')[0] : 'Non spécifié' },
-                            { label: 'Marque', value: p.brands || 'Non spécifié' },
-                            { label: 'Labels', value: p.labels || 'Non spécifié' },
-                            { label: 'Origine', value: p.countries || 'Non spécifié' }
+                            { label: '🧴 Type', value: p.categories ? p.categories.split(',')[0] : 'Non spécifié' },
+                            { label: '🏭 Marque', value: p.brands || 'Non spécifié' },
+                            { label: '✅ Labels', value: p.labels || 'Non spécifié' },
+                            { label: '📏 Contenance', value: p.quantity || 'Non spécifié' }
                         ]
                     };
                 }
             },
             {
-                name: 'Open Product Facts',
-                type: 'general',
+                id: 'product',
+                name: '📦 Open Product Facts',
                 url: (barcode) => `https://world.openproductfacts.org/api/v2/product/${barcode}.json`,
                 parser: (data) => {
                     if (!data || data.status !== 1) return null;
                     const p = data.product;
                     return {
-                        name: p.product_name || 'Produit inconnu',
+                        name: p.product_name || 'Nom inconnu',
                         brand: p.brands || 'Marque inconnue',
                         details: [
-                            { label: 'Catégorie', value: p.categories || 'Non spécifié' },
-                            { label: 'Emballage', value: p.packaging || 'Non spécifié' },
-                            { label: 'Environnement', value: p.ecoscore_grade ? `Score ${p.ecoscore_grade.toUpperCase()}` : 'Non spécifié' }
+                            { label: '📋 Catégorie', value: p.categories || 'Non spécifié' },
+                            { label: '📦 Emballage', value: p.packaging || 'Non spécifié' },
+                            { label: '🌱 Eco-Score', value: p.ecoscore_grade ? p.ecoscore_grade.toUpperCase() : 'Non spécifié' },
+                            { label: '🌍 Origine', value: p.countries || 'Non spécifié' }
                         ]
                     };
                 }
             }
         ];
 
-        // Arrêter le scan
-        async function stopScan() {
-            scanning = false;
-            if (animationFrame) {
-                cancelAnimationFrame(animationFrame);
-                animationFrame = null;
+        // Arrêter le scan proprement
+        async function stopScanning() {
+            isScanning = false;
+            
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
             }
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                stream = null;
+            
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
             }
-            if (scanTimeout) {
-                clearTimeout(scanTimeout);
-                scanTimeout = null;
-            }
+            
             video.srcObject = null;
-            scannerSection.style.display = 'none';
+            scannerWrapper.classList.remove('active');
+            scanButton.classList.remove('scanning');
+            scanButton.innerHTML = '<span>📷</span> Scanner un article';
         }
 
         // Démarrer le scan
-        async function startScan() {
+        async function startScanning() {
             try {
-                // Nettoyer
-                await stopScan();
+                // Réinitialiser l'interface
+                await stopScanning();
+                resultState.classList.remove('active');
+                errorState.classList.remove('active');
+                loadingState.classList.remove('active');
+                newScanBtn.style.display = 'none';
                 
-                // Cacher les résultats
-                productInfo.classList.remove('active');
-                errorMessage.classList.remove('active');
-                multipleSources.style.display = 'none';
-                resetBtn.style.display = 'none';
-
-                // Demander la caméra
-                stream = await navigator.mediaDevices.getUserMedia({ 
+                // Demander l'accès à la caméra
+                videoStream = await navigator.mediaDevices.getUserMedia({ 
                     video: { 
                         facingMode: 'environment',
-                        width: { ideal: 640 },
-                        height: { ideal: 480 }
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
                     } 
                 });
                 
-                video.srcObject = stream;
-                scannerSection.style.display = 'block';
+                video.srcObject = videoStream;
+                scannerWrapper.classList.add('active');
+                scanButton.classList.add('scanning');
+                scanButton.innerHTML = '<span>⏹️</span> Arrêter le scan';
                 
                 // Attendre que la vidéo soit prête
                 await new Promise((resolve) => {
@@ -489,30 +524,21 @@
                         resolve();
                     };
                 });
-
-                scanning = true;
+                
+                isScanning = true;
                 scanFrame();
                 
-                // Timeout de sécurité
-                scanTimeout = setTimeout(() => {
-                    if (scanning) {
-                        alert('Aucun code-barres détecté. Assurez-vous que le code est bien éclairé et centré.');
-                        stopScan();
-                        scannerSection.style.display = 'none';
-                    }
-                }, 30000);
-
             } catch (error) {
                 console.error('Erreur caméra:', error);
                 alert('Impossible d\'accéder à la caméra. Vérifiez les permissions.');
-                scannerSection.style.display = 'none';
+                await stopScanning();
             }
         }
 
-        // Analyser chaque frame
+        // Analyser les frames vidéo
         function scanFrame() {
-            if (!scanning) return;
-
+            if (!isScanning) return;
+            
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
                 const canvas = document.createElement('canvas');
                 canvas.width = video.videoWidth;
@@ -524,40 +550,35 @@
                 const code = jsQR(imageData.data, canvas.width, canvas.height, {
                     inversionAttempts: "dontInvert",
                 });
-
-                if (code && code.data !== lastCode) {
-                    lastCode = code.data;
-                    handleBarcode(code.data);
+                
+                if (code && code.data) {
+                    console.log('Code détecté:', code.data);
+                    handleDetectedBarcode(code.data);
                     return;
                 }
             }
             
-            animationFrame = requestAnimationFrame(scanFrame);
+            animationId = requestAnimationFrame(scanFrame);
         }
 
-        // Traiter le code-barres trouvé
-        async function handleBarcode(barcode) {
-            console.log('Code détecté:', barcode);
-            scanning = false;
-            cancelAnimationFrame(animationFrame);
-            if (scanTimeout) clearTimeout(scanTimeout);
+        // Gérer le code-barres détecté
+        async function handleDetectedBarcode(barcode) {
+            if (!isScanning) return;
             
-            await stopScan();
+            currentBarcode = barcode;
+            await stopScanning();
+            
+            // Afficher le chargement
+            loadingState.classList.add('active');
+            
+            // Rechercher dans toutes les bases de données
             await searchAllDatabases(barcode);
         }
 
         // Rechercher dans toutes les bases de données
         async function searchAllDatabases(barcode) {
-            loading.classList.add('active');
-            productInfo.classList.remove('active');
-            errorMessage.classList.remove('active');
-            multipleSources.style.display = 'none';
-            dbTabs.innerHTML = '';
-
-            let found = false;
-            let firstResult = null;
             const results = [];
-
+            
             for (const db of databases) {
                 try {
                     const response = await fetch(db.url(barcode));
@@ -565,53 +586,33 @@
                     const parsed = db.parser(data);
                     
                     if (parsed) {
-                        found = true;
                         results.push({
                             source: db.name,
-                            type: db.type,
                             data: parsed
                         });
-
-                        if (!firstResult) {
-                            firstResult = { source: db.name, data: parsed };
-                        }
                     }
-                } catch (e) {
-                    console.log(`${db.name} non disponible`);
+                } catch (error) {
+                    console.log(`Erreur avec ${db.name}:`, error);
                 }
             }
-
-            loading.classList.remove('active');
-
-            if (firstResult) {
-                displayProduct(firstResult.data, firstResult.source, barcode);
-                
-                if (results.length > 1) {
-                    displayOtherSources(results.slice(1), barcode);
-                }
+            
+            loadingState.classList.remove('active');
+            
+            if (results.length > 0) {
+                displayResults(results, barcode);
             } else {
-                errorMessage.classList.add('active');
+                errorState.classList.add('active');
+                newScanBtn.style.display = 'block';
             }
-
-            resetBtn.style.display = 'block';
         }
 
-        // Afficher le produit
-        function displayProduct(product, source, barcode) {
+        // Afficher les résultats
+        function displayResults(results, barcode) {
+            const mainResult = results[0];
+            
             barcodeDisplay.textContent = `Code: ${barcode}`;
-            productName.textContent = product.name;
-            productBrand.textContent = product.brand;
-            dataSource.textContent = `Source: ${source}`;
+            sourceDisplay.textContent = `Source: ${mainResult.source}`;
+            productName.textContent = mainResult.data.name;
+            productBrand.textContent = mainResult.data.brand;
             
-            // Générer les détails
-            infoGrid.innerHTML = product.details.map(detail => `
-                <div class="info-row">
-                    <span class="info-label">${detail.label}</span>
-                    <span class="info-value">${detail.value}</span>
-                </div>
-            `).join('');
-            
-            productInfo.classList.add('active');
-        }
-
-        // Afficher les
+            // Aff
