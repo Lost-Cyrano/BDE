@@ -194,7 +194,7 @@
       const appCheck = firebase.appCheck();
       appCheck.activate(
         "6LdpdGksAAAAALc_PoWIUCDRwTStx8bs6WHb6GUh", // Votre clé reCAPTCHA
-        false // Pas de token auto-rafraîchi
+        true // Pas de token auto-rafraîchi
       );
       console.log("✅ App Check activé");
     } catch (e) {
